@@ -130,22 +130,15 @@ export class AuthUtils {
   }
 
   /**
-   * Validate student ID
+   * Validate student ID (must be exactly 6 digits)
    */
   static validateStudentId(studentId) {
-    const rules = VALIDATION_RULES.STUDENT_ID;
-    
     if (!studentId) {
-      return { isValid: false, error: 'Mã sinh viên không được để trống' };
+      return { isValid: false, error: 'Mã sinh viên là bắt buộc' };
     }
-
-    if (!rules.PATTERN.test(studentId)) {
-      return { 
-        isValid: false, 
-        error: `Mã sinh viên phải có ${rules.MIN_LENGTH}-${rules.MAX_LENGTH} chữ số` 
-      };
+    if (!/^[0-9]{6}$/.test(studentId)) {
+      return { isValid: false, error: 'Mã sinh viên phải đúng 6 chữ số' };
     }
-
     return { isValid: true };
   }
 

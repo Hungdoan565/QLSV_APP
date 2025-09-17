@@ -452,7 +452,7 @@ const Register = () => {
                       disabled={loading}
                       error={!!errors.studentId}
                       helperText={errors.studentId}
-                      placeholder="20231234"
+                      placeholder="6 chữ số ( VD: 220211 )"
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           '&:hover fieldset': {
