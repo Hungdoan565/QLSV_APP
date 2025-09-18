@@ -129,4 +129,5 @@ export const useNotification = () => {
   }
 }
 
+export { NotificationProvider }
 export default NotificationProvider

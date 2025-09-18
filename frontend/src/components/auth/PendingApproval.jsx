@@ -18,14 +18,16 @@ import {
   CheckCircleOutline,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../../store/slices/authSlice';
 import AuthUtils from '../../utils/authUtils';
 
 const PendingApproval = () => {
-  const { user, logout } = useAuth();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
 
   const handleLogout = () => {
-    logout();
+    dispatch(logout());
   };
 
   return (

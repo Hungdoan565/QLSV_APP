@@ -30,7 +30,8 @@ import {
   Phone,
   AccountCircle,
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useDispatch, useSelector } from 'react-redux';
+import { register } from '../../store/slices/authSlice';
 import AuthUtils from '../../utils/authUtils';
 import { DEPARTMENTS } from '../../utils/constants';
 
@@ -54,12 +55,13 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { register, isAuthenticated } = useAuth();
+  const dispatch = useDispatch();
+  const { isAuthenticated, isLoading } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
@@ -172,23 +174,16 @@ const Register = () => {
         registrationData.department = formData.department;
       }
 
-      const result = await register(registrationData);
+      const result = await dispatch(register(registrationData)).unwrap();
       
-      if (result.success) {
-        setMessage(result.message || 'Đăng ký thành công!');
-        
-        // Redirect based on approval status
-        if (result.requireApproval) {
-          setTimeout(() => navigate('/pending-approval'), 1500);
-        } else {
-          const dashboardPath = AuthUtils.getDashboardPath(result.user);
-          setTimeout(() => navigate(dashboardPath), 1500);
-        }
-      } else {
-        setMessage(result.message);
-      }
+      setMessage('Đăng ký thành công! Vui lòng đợi admin phê duyệt.');
+      
+      // Redirect to pending approval page
+      setTimeout(() => {
+        navigate('/pending-approval');
+      }, 2000);
     } catch (error) {
-      setMessage('Đã có lỗi xảy ra. Vui lòng thử lại.');
+      setMessage(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }

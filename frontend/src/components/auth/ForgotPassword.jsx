@@ -19,7 +19,7 @@ import {
   Send,
   CheckCircle,
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useSelector } from 'react-redux';
 
 const ForgotPassword = () => {
   const [formData, setFormData] = useState({
@@ -30,12 +30,12 @@ const ForgotPassword = () => {
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);

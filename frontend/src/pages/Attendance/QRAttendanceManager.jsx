@@ -62,7 +62,7 @@ import { Helmet } from 'react-helmet-async'
 import QRCodeScanner from '../../components/QRCode/QRCodeScanner'
 import QRCodeGenerator from '../../components/QRCode/QRCodeGenerator'
 import { useNotification } from '../../components/Notification/NotificationProvider'
-import { useAuth } from '../../contexts/AuthContext'
+import { useSelector } from 'react-redux'
 import attendanceService from '../../services/attendanceService'
 import classService from '../../services/classService'
 
@@ -78,7 +78,7 @@ const sessionSchema = yup.object({
 const QRAttendanceManager = () => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const { user, userProfile } = useAuth()
+  const { user } = useSelector((state) => state.auth)
   const { showSuccess, showError, showInfo } = useNotification()
 
   // State management

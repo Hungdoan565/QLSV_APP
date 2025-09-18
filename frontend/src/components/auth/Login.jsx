@@ -24,7 +24,8 @@ import {
   School,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useDispatch, useSelector } from 'react-redux';
+import { login } from '../../store/slices/authSlice';
 
 const Login = () => {
   const theme = useTheme();
@@ -39,13 +40,14 @@ const Login = () => {
   const [message, setMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const { login, isAuthenticated } = useAuth();
+  const dispatch = useDispatch();
+  const { user, isAuthenticated, isLoading, error } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated) {
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     }
@@ -95,23 +97,22 @@ const Login = () => {
     setMessage('');
 
     try {
-      const result = await login(formData.email, formData.password);
+      const result = await dispatch(login({
+        email: formData.email,
+        password: formData.password
+      })).unwrap();
       
-      if (result.success) {
-        setMessage(result.message || 'Đăng nhập thành công!');
-        
-        // Redirect based on user role and approval status
-        if (result.requireApproval) {
-          navigate('/pending-approval');
-        } else {
-          const from = location.state?.from?.pathname || getDashboardPath(result.user.role);
-          navigate(from, { replace: true });
-        }
+      setMessage('Đăng nhập thành công!');
+      
+      // Redirect based on user role and approval status
+      if (result.user?.account_status === 'pending') {
+        navigate('/pending-approval');
       } else {
-        setMessage(result.message);
+        const from = location.state?.from?.pathname || getDashboardPath(result.user.role);
+        navigate(from, { replace: true });
       }
     } catch (error) {
-      setMessage('Đã có lỗi xảy ra. Vui lòng thử lại.');
+      setMessage(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
     }

@@ -21,7 +21,7 @@ import {
   CheckCircle,
   Error,
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useSelector } from 'react-redux';
 
 const ResetPassword = () => {
   const [formData, setFormData] = useState({
@@ -38,14 +38,14 @@ const ResetPassword = () => {
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const uid = searchParams.get('uid');
   const token = searchParams.get('token');
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);

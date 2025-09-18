@@ -1,27 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import studentService from '../../services/studentService'
+import api from '../../services/api'
 
 // Async thunks
 export const fetchStudents = createAsyncThunk(
   'students/fetchStudents',
-  async (params, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const response = await studentService.getStudents(params)
+      const response = await api.get('/students/')
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
-    }
-  }
-)
-
-export const fetchStudent = createAsyncThunk(
-  'students/fetchStudent',
-  async (id, { rejectWithValue }) => {
-    try {
-      const response = await studentService.getStudent(id)
-      return response.data
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
+      return rejectWithValue(error.response?.data?.message || 'Không thể tải danh sách sinh viên')
     }
   }
 )
@@ -30,10 +18,10 @@ export const createStudent = createAsyncThunk(
   'students/createStudent',
   async (studentData, { rejectWithValue }) => {
     try {
-      const response = await studentService.createStudent(studentData)
+      const response = await api.post('/students/', studentData)
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
+      return rejectWithValue(error.response?.data?.message || 'Không thể tạo sinh viên')
     }
   }
 )
@@ -42,10 +30,10 @@ export const updateStudent = createAsyncThunk(
   'students/updateStudent',
   async ({ id, studentData }, { rejectWithValue }) => {
     try {
-      const response = await studentService.updateStudent(id, studentData)
+      const response = await api.put(`/students/${id}/`, studentData)
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
+      return rejectWithValue(error.response?.data?.message || 'Không thể cập nhật sinh viên')
     }
   }
 )
@@ -54,34 +42,10 @@ export const deleteStudent = createAsyncThunk(
   'students/deleteStudent',
   async (id, { rejectWithValue }) => {
     try {
-      await studentService.deleteStudent(id)
+      await api.delete(`/students/${id}/`)
       return id
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
-    }
-  }
-)
-
-export const importStudents = createAsyncThunk(
-  'students/importStudents',
-  async (file, { rejectWithValue }) => {
-    try {
-      const response = await studentService.importStudents(file)
-      return response.data
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
-    }
-  }
-)
-
-export const exportStudents = createAsyncThunk(
-  'students/exportStudents',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response = await studentService.exportStudents(params)
-      return response.data
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
+      return rejectWithValue(error.response?.data?.message || 'Không thể xóa sinh viên')
     }
   }
 )
@@ -90,25 +54,19 @@ export const fetchStudentStatistics = createAsyncThunk(
   'students/fetchStudentStatistics',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await studentService.getStudentStatistics()
+      const response = await api.get('/students/statistics/')
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
+      return rejectWithValue(error.response?.data?.message || 'Không thể tải thống kê sinh viên')
     }
   }
 )
 
 const initialState = {
   students: [],
-  currentStudent: null,
   statistics: null,
   isLoading: false,
   error: null,
-  pagination: {
-    count: 0,
-    next: null,
-    previous: null,
-  },
 }
 
 const studentSlice = createSlice({
@@ -117,9 +75,6 @@ const studentSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null
-    },
-    clearCurrentStudent: (state) => {
-      state.currentStudent = null
     },
   },
   extraReducers: (builder) => {
@@ -131,27 +86,9 @@ const studentSlice = createSlice({
       })
       .addCase(fetchStudents.fulfilled, (state, action) => {
         state.isLoading = false
-        state.students = action.payload.results
-        state.pagination = {
-          count: action.payload.count,
-          next: action.payload.next,
-          previous: action.payload.previous,
-        }
+        state.students = action.payload
       })
       .addCase(fetchStudents.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = action.payload
-      })
-      // Fetch single student
-      .addCase(fetchStudent.pending, (state) => {
-        state.isLoading = true
-        state.error = null
-      })
-      .addCase(fetchStudent.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.currentStudent = action.payload
-      })
-      .addCase(fetchStudent.rejected, (state, action) => {
         state.isLoading = false
         state.error = action.payload
       })
@@ -162,7 +99,7 @@ const studentSlice = createSlice({
       })
       .addCase(createStudent.fulfilled, (state, action) => {
         state.isLoading = false
-        state.students.unshift(action.payload)
+        state.students.push(action.payload)
       })
       .addCase(createStudent.rejected, (state, action) => {
         state.isLoading = false
@@ -178,9 +115,6 @@ const studentSlice = createSlice({
         const index = state.students.findIndex(student => student.id === action.payload.id)
         if (index !== -1) {
           state.students[index] = action.payload
-        }
-        if (state.currentStudent && state.currentStudent.id === action.payload.id) {
-          state.currentStudent = action.payload
         }
       })
       .addCase(updateStudent.rejected, (state, action) => {
@@ -200,24 +134,9 @@ const studentSlice = createSlice({
         state.isLoading = false
         state.error = action.payload
       })
-      // Import students
-      .addCase(importStudents.pending, (state) => {
-        state.isLoading = true
-        state.error = null
-      })
-      .addCase(importStudents.fulfilled, (state, action) => {
-        state.isLoading = false
-        // Add imported students to the list
-        state.students.unshift(...action.payload.students)
-      })
-      .addCase(importStudents.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = action.payload
-      })
       // Fetch statistics
       .addCase(fetchStudentStatistics.pending, (state) => {
         state.isLoading = true
-        state.error = null
       })
       .addCase(fetchStudentStatistics.fulfilled, (state, action) => {
         state.isLoading = false
@@ -230,5 +149,5 @@ const studentSlice = createSlice({
   },
 })
 
-export const { clearError, clearCurrentStudent } = studentSlice.actions
+export const { clearError } = studentSlice.actions
 export default studentSlice.reducer

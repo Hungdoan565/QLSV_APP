@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useSelector } from 'react-redux';
 import AuthUtils from '../../utils/authUtils';
 
 const ProtectedRoute = ({ 
@@ -10,9 +10,9 @@ const ProtectedRoute = ({
   requireAdmin = false, 
   requireTeacher = false,
   redirectTo = '/login' 
-}) => {  const { user, loading, isAuthenticated } = useAuth();
+}) => {  const { user, isLoading, isAuthenticated } = useSelector((state) => state.auth);
   // Show loading spinner while checking authentication
-  if (loading) {
+  if (isLoading) {
     return (
       <Box
         sx={{
@@ -33,7 +33,7 @@ const ProtectedRoute = ({
   }
 
   // Check if user is authenticated
-  if (!isAuthenticated()) {
+  if (!isAuthenticated) {
     return <Navigate to={redirectTo} replace />;
   }
 

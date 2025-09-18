@@ -7,7 +7,7 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authService.login(credentials)
-      localStorage.setItem('token', response.data.access)
+      localStorage.setItem('accessToken', response.data.access)
       localStorage.setItem('refreshToken', response.data.refresh)
       return response.data
     } catch (error) {
@@ -67,9 +67,9 @@ export const changePassword = createAsyncThunk(
 
 const initialState = {
   user: null,
-  token: localStorage.getItem('token'),
+  token: localStorage.getItem('accessToken'),
   refreshToken: localStorage.getItem('refreshToken'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  isAuthenticated: !!localStorage.getItem('accessToken'),
   isLoading: false,
   error: null,
 }
@@ -83,7 +83,7 @@ const authSlice = createSlice({
       state.token = null
       state.refreshToken = null
       state.isAuthenticated = false
-      localStorage.removeItem('token')
+      localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
     },
     clearError: (state) => {

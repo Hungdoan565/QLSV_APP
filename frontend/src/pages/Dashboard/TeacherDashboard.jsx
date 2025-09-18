@@ -1,50 +1,94 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
-  Container,
   Typography,
   Grid,
   Card,
   CardContent,
-  Paper,
-  Stack,
-  Chip,
-  Avatar,
   Button,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  useTheme,
+  Avatar,
+  Chip,
+  Stack,
   IconButton,
+  useTheme,
+  useMediaQuery,
+  alpha,
   Table,
-  TableHead,
   TableBody,
-  TableRow,
   TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from '@mui/material'
 import {
-  People,
-  Class,
-  CheckCircle,
-  Cancel,
-  Assignment,
-  TrendingUp,
-  Notifications,
   QrCodeScanner,
-  BarChart,
-  CalendarToday,
+  People,
   School,
+  CheckCircle,
+  Schedule,
+  TrendingUp,
   Add,
-  FileDownload,
   Visibility,
+  FileDownload,
+  Notifications,
+  Warning,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { Helmet } from 'react-helmet-async'
-import QRCodeGenerator from '../../components/QRCode/QRCodeGenerator'
 import { useNotification } from '../../components/Notification/NotificationProvider'
 
+// Quick Action Card Component
+const QuickActionCard = ({ icon, title, subtitle, onClick, color = 'primary' }) => (
+  <motion.div
+    whileHover={{ y: -4 }}
+    whileTap={{ scale: 0.98 }}
+  >
+    <Card
+      elevation={0}
+      sx={{
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 3,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          borderColor: `${color}.main`,
+          boxShadow: (theme) => `0 4px 20px ${alpha(theme.palette[color].main, 0.15)}`,
+        }
+      }}
+      onClick={onClick}
+    >
+      <CardContent sx={{ p: 3, textAlign: 'center' }}>
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: 2,
+            bgcolor: alpha(color === 'primary' ? '#3b82f6' : '#22c55e', 0.1),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 2,
+            color: color === 'primary' ? '#3b82f6' : '#22c55e',
+          }}
+        >
+          {icon}
+        </Box>
+        <Typography variant="h6" fontWeight={600} gutterBottom>
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {subtitle}
+        </Typography>
+      </CardContent>
+    </Card>
+  </motion.div>
+)
+
+// Stat Card Component
 const StatCard = ({ icon, title, value, subtitle, color = 'primary', action = null }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -56,14 +100,14 @@ const StatCard = ({ icon, title, value, subtitle, color = 'primary', action = nu
         <Stack direction="row" alignItems="center" spacing={2}>
           <Box
             sx={{
-              width: 56,
-              height: 56,
+              width: 48,
+              height: 48,
               borderRadius: 2,
-              bgcolor: `${color}.light`,
+              bgcolor: alpha(color === 'primary' ? '#3b82f6' : color === 'success' ? '#22c55e' : '#f59e0b', 0.1),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: `${color}.main`,
+              color: color === 'primary' ? '#3b82f6' : color === 'success' ? '#22c55e' : '#f59e0b',
             }}
           >
             {icon}
@@ -90,22 +134,80 @@ const StatCard = ({ icon, title, value, subtitle, color = 'primary', action = nu
   </motion.div>
 )
 
+// Class Session Card Component
+const ClassSessionCard = ({ session, onViewAttendance, onGenerateQR }) => (
+  <motion.div
+    initial={{ opacity: 0, x: -20 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 2 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: 2,
+              bgcolor: alpha('#3b82f6', 0.1),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#3b82f6',
+            }}
+          >
+            <School />
+          </Box>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" fontWeight={600} gutterBottom>
+              {session.subject}
+            </Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="body2" color="text.secondary">
+                {session.time}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Phòng {session.room}
+              </Typography>
+            </Stack>
+          </Box>
+          <Box sx={{ textAlign: 'right' }}>
+            <Chip
+              label={session.status === 'completed' ? 'Hoàn thành' : 'Sắp diễn ra'}
+              color={session.status === 'completed' ? 'success' : 'default'}
+              size="small"
+              sx={{ mb: 1 }}
+            />
+            <Stack direction="row" spacing={1}>
+              <IconButton size="small" color="primary" onClick={() => onViewAttendance(session)}>
+                <Visibility />
+              </IconButton>
+              <IconButton size="small" color="secondary" onClick={() => onGenerateQR(session)}>
+                <QrCodeScanner />
+              </IconButton>
+            </Stack>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  </motion.div>
+)
+
 const TeacherDashboard = () => {
   const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const { user } = useSelector((state) => state.auth)
-  const { showSuccess } = useNotification()
-  const [generatorOpen, setGeneratorOpen] = useState(false)
-  const [selectedSession, setSelectedSession] = useState(null)
+  const { showSuccess, showError } = useNotification()
 
   // Mock data - replace with real API calls
-  const teacherStats = {
+  const [teacherStats, setTeacherStats] = useState({
     totalClasses: 6,
     totalStudents: 180,
     todayClasses: 3,
     attendanceRate: 87.2
-  }
+  })
 
-  const todayClasses = [
+  const [todaysSessions, setTodaysSessions] = useState([
     { 
       id: 1, 
       subject: 'Lập trình Web', 
@@ -133,20 +235,43 @@ const TeacherDashboard = () => {
       attended: null,
       status: 'upcoming'
     },
-  ]
+  ])
 
-  const recentActivities = [
-    { id: 1, type: 'attendance', class: 'Lập trình Web', count: '28/32 sinh viên', time: '2 giờ trước' },
-    { id: 2, type: 'grade', class: 'Cơ sở dữ liệu', count: 'Đã chấm 15 bài', time: '1 ngày trước' },
-    { id: 3, type: 'attendance', class: 'Cơ sở dữ liệu', count: '32/35 sinh viên', time: '2 ngày trước' },
-    { id: 4, type: 'system', class: '', count: 'Cập nhật thông tin lớp học', time: '3 ngày trước' },
-  ]
-
-  const lowAttendanceStudents = [
+  const [lowAttendanceStudents, setLowAttendanceStudents] = useState([
     { id: 1, name: 'Nguyễn Văn A', class: 'Lập trình Web', rate: 65, sessions: '13/20' },
     { id: 2, name: 'Trần Thị B', class: 'Cơ sở dữ liệu', rate: 70, sessions: '14/20' },
     { id: 3, name: 'Lê Văn C', class: 'PTTKHT', rate: 72, sessions: '18/25' },
-  ]
+  ])
+
+  const handleCreateAttendanceSession = () => {
+    showSuccess('Tạo phiên điểm danh mới')
+    // Navigate to attendance creation page
+  }
+
+  const handleViewAttendanceReport = () => {
+    showSuccess('Xem báo cáo điểm danh')
+    // Navigate to attendance report page
+  }
+
+  const handleManageStudents = () => {
+    showSuccess('Quản lý sinh viên')
+    // Navigate to student management page
+  }
+
+  const handleGenerateQR = (session) => {
+    showSuccess(`Tạo QR code cho ${session.subject}`)
+    // Generate QR code for the session
+  }
+
+  const handleViewAttendance = (session) => {
+    showSuccess(`Xem điểm danh ${session.subject}`)
+    // View attendance details
+  }
+
+  const handleExportReport = () => {
+    showSuccess('Xuất báo cáo thành công')
+    // Export attendance report
+  }
 
   return (
     <>
@@ -154,109 +279,112 @@ const TeacherDashboard = () => {
         <title>Dashboard Giảng viên - EduAttend</title>
       </Helmet>
 
-      <Box sx={{ flexGrow: 1, bgcolor: 'background.default', minHeight: '100vh' }}>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          {/* Welcome Section */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+      <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+        {/* Welcome Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Card
+            elevation={0}
+            sx={{
+              p: 4,
+              mb: 4,
+              borderRadius: 3,
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              color: 'white',
+            }}
           >
-            <Paper
-              elevation={0}
-              sx={{
-                p: 4,
-                mb: 4,
-                borderRadius: 3,
-                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                color: 'white',
-              }}
-            >
-              <Grid container alignItems="center" spacing={3}>
-                <Grid item>
-                  <Avatar
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      bgcolor: 'rgba(255,255,255,0.2)',
-                      fontSize: '2rem',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {user?.fullName?.charAt(0) || 'T'}
-                  </Avatar>
-                </Grid>
-                <Grid item xs>
-                  <Typography variant="h4" fontWeight={700} gutterBottom>
-                    Chào {user?.fullName || 'Giảng viên'}!
-                  </Typography>
-                  <Typography variant="h6" sx={{ opacity: 0.9, mb: 2 }}>
-                    Khoa: {user?.department || 'Công nghệ Thông tin'} • {teacherStats.totalClasses} lớp học
-                  </Typography>
-                  <Stack direction="row" spacing={2} flexWrap="wrap">
-                    <Chip
-                      icon={<CalendarToday />}
-                      label={`${teacherStats.todayClasses} lớp hôm nay`}
-                      sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
-                    />
-                    <Chip
-                      icon={<TrendingUp />}
-                      label={`${teacherStats.attendanceRate}% tỷ lệ tham dự`}
-                      sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
-                    />
-                  </Stack>
-                </Grid>
-                <Grid item>
-                  <Stack direction="row" spacing={2}>                    <Button
-                      variant="contained"
-                      startIcon={<QrCodeScanner />}
-                      onClick={() => {
-                        // Demo session data
-                        const demoSession = {
-                          id: 'demo-session-' + Date.now(),
-                          subject: 'Lập trình Web',
-                          class_name: 'IT2021-01',
-                          session_date: new Date().toISOString().split('T')[0],
-                          start_time: '08:00',
-                          end_time: '09:30',
-                          total_students: 32
-                        }
-                        setSelectedSession(demoSession)
-                        setGeneratorOpen(true)
-                      }}
-                      sx={{
-                        bgcolor: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
-                      }}
-                    >
-                      Tạo QR Điểm danh
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Add />}
-                      sx={{
-                        borderColor: 'rgba(255,255,255,0.5)',
-                        color: 'white',
-                        '&:hover': { 
-                          borderColor: 'white',
-                          bgcolor: 'rgba(255,255,255,0.1)' 
-                        },
-                      }}
-                    >
-                      Tạo lớp học
-                    </Button>
-                  </Stack>
-                </Grid>
-              </Grid>
-            </Paper>
-          </motion.div>
+            <Stack direction={{ xs: 'column', md: 'row' }} alignItems="center" spacing={3}>
+              <Avatar
+                sx={{
+                  width: 80,
+                  height: 80,
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  fontSize: '2rem',
+                  fontWeight: 700,
+                }}
+              >
+                {user?.first_name?.charAt(0) || 'T'}
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h4" fontWeight={700} gutterBottom>
+                  Chào {user?.first_name || 'Giảng viên'}!
+                </Typography>
+                <Typography variant="h6" sx={{ opacity: 0.9, mb: 2 }}>
+                  Khoa: {user?.department || 'Công nghệ Thông tin'} • {teacherStats.totalClasses} lớp học
+                </Typography>
+                <Stack direction="row" spacing={2} flexWrap="wrap">
+                  <Chip
+                    icon={<Schedule />}
+                    label={`${teacherStats.todayClasses} lớp hôm nay`}
+                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                  />
+                  <Chip
+                    icon={<TrendingUp />}
+                    label={`${teacherStats.attendanceRate}% tỷ lệ tham dự`}
+                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                  />
+                </Stack>
+              </Box>
+            </Stack>
+          </Card>
+        </motion.div>
 
-          {/* Stats Cards */}
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
+            Thao tác nhanh
+          </Typography>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={4}>
+              <QuickActionCard
+                icon={<QrCodeScanner />}
+                title="Tạo điểm danh"
+                subtitle="Tạo phiên điểm danh mới"
+                onClick={handleCreateAttendanceSession}
+                color="primary"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <QuickActionCard
+                icon={<FileDownload />}
+                title="Báo cáo"
+                subtitle="Xem báo cáo điểm danh"
+                onClick={handleViewAttendanceReport}
+                color="secondary"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <QuickActionCard
+                icon={<People />}
+                title="Quản lý SV"
+                subtitle="Quản lý sinh viên"
+                onClick={handleManageStudents}
+                color="secondary"
+              />
+            </Grid>
+          </Grid>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
+            Thống kê giảng dạy
+          </Typography>
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                icon={<Class />}
+                icon={<School />}
                 title="Tổng lớp học"
                 value={teacherStats.totalClasses}
                 subtitle="đang giảng dạy"
@@ -288,7 +416,7 @@ const TeacherDashboard = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                icon={<CalendarToday />}
+                icon={<Schedule />}
                 title="Hôm nay"
                 value={teacherStats.todayClasses}
                 subtitle="buổi học"
@@ -296,10 +424,16 @@ const TeacherDashboard = () => {
               />
             </Grid>
           </Grid>
+        </motion.div>
 
-          <Grid container spacing={4}>
-            {/* Today's Classes */}
-            <Grid item xs={12} md={8}>
+        <Grid container spacing={4}>
+          {/* Today's Sessions */}
+          <Grid item xs={12} md={8}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -310,94 +444,32 @@ const TeacherDashboard = () => {
                       variant="outlined"
                       startIcon={<FileDownload />}
                       size="small"
+                      onClick={handleExportReport}
                     >
                       Xuất báo cáo
                     </Button>
                   </Box>
                   
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Môn học</TableCell>
-                        <TableCell>Thời gian</TableCell>
-                        <TableCell>Phòng</TableCell>
-                        <TableCell align="center">Điểm danh</TableCell>
-                        <TableCell align="center">Hành động</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {todayClasses.map((class_) => (
-                        <TableRow key={class_.id}>
-                          <TableCell>
-                            <Typography variant="subtitle2" fontWeight={600}>
-                              {class_.subject}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>{class_.time}</TableCell>
-                          <TableCell>{class_.room}</TableCell>
-                          <TableCell align="center">
-                            {class_.status === 'completed' ? (
-                              <Chip
-                                label={`${class_.attended}/${class_.students}`}
-                                color="success"
-                                size="small"
-                              />
-                            ) : (
-                              <Chip
-                                label="Chưa điểm danh"
-                                color="default"
-                                size="small"
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Stack direction="row" spacing={1} justifyContent="center">
-                              <IconButton size="small" color="primary">
-                                <Visibility />
-                              </IconButton>
-                              <IconButton size="small" color="secondary">
-                                <QrCodeScanner />
-                              </IconButton>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  {todaysSessions.map((session) => (
+                    <ClassSessionCard
+                      key={session.id}
+                      session={session}
+                      onViewAttendance={handleViewAttendance}
+                      onGenerateQR={handleGenerateQR}
+                    />
+                  ))}
                 </CardContent>
               </Card>
-            </Grid>
+            </motion.div>
+          </Grid>
 
-            {/* Recent Activities */}
-            <Grid item xs={12} md={4}>
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
-                    Hoạt động gần đây
-                  </Typography>
-                  <List>
-                    {recentActivities.map((activity) => (
-                      <ListItem key={activity.id} divider>
-                        <ListItemIcon>
-                          {activity.type === 'attendance' ? (
-                            <CheckCircle color="success" />
-                          ) : activity.type === 'grade' ? (
-                            <Assignment color="primary" />
-                          ) : (
-                            <Notifications color="info" />
-                          )}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={activity.count}
-                          secondary={`${activity.class ? activity.class + ' • ' : ''}${activity.time}`}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                </CardContent>
-              </Card>
-
-              {/* Low Attendance Alert */}
+          {/* Low Attendance Alert */}
+          <Grid item xs={12} md={4}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+            >
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'warning.main', borderRadius: 3 }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" fontWeight={600} gutterBottom color="warning.main">
@@ -441,19 +513,9 @@ const TeacherDashboard = () => {
                   </Button>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>        </Container>
-
-        {/* QR Code Generator */}
-        <QRCodeGenerator
-          open={generatorOpen}
-          onClose={() => setGeneratorOpen(false)}
-          sessionData={selectedSession}
-          onSessionUpdate={(updatedSession) => {
-            setSelectedSession(updatedSession)
-            showSuccess('Phiên điểm danh đã được cập nhật')
-          }}
-        />
+            </motion.div>
+          </Grid>
+        </Grid>
       </Box>
     </>
   )

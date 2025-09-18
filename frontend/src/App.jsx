@@ -1,17 +1,12 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { HelmetProvider } from 'react-helmet-async'
+import { useSelector, useDispatch } from 'react-redux'
+import { SnackbarProvider } from 'notistack'
 
-// Authentication
-import { AuthProvider } from './contexts/AuthContext.jsx'
-
-// Components
+// Layout
 import Layout from './components/Layout/Layout'
-import ProtectedRoute from './components/auth/ProtectedRoute'
-import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
-import NotificationProvider from './components/Notification/NotificationProvider'
 
-// Auth Pages
+// Auth Components
 import Login from './components/auth/Login'
 import Register from './components/auth/Register'
 import ForgotPassword from './components/auth/ForgotPassword'
@@ -19,169 +14,175 @@ import ResetPassword from './components/auth/ResetPassword'
 import PendingApproval from './components/auth/PendingApproval'
 import Unauthorized from './components/auth/Unauthorized'
 
-// Debug Pages
-import AuthTestPage from './pages/Debug/AuthTestPage'
-
-// Main Pages
+// Dashboard Components
 import Dashboard from './pages/Dashboard/Dashboard'
-import StudentDashboard from './pages/Dashboard/StudentDashboard'
-import TeacherDashboard from './pages/Dashboard/TeacherDashboard'
 import AdminDashboard from './pages/Dashboard/AdminDashboard'
+import TeacherDashboard from './pages/Dashboard/TeacherDashboard'
+import StudentDashboard from './pages/Dashboard/StudentDashboard'
+
+// Page Components
+import HomePage from './pages/Home/HomePage'
 import Students from './pages/Students/Students'
 import Classes from './pages/Classes/Classes'
 import Grades from './pages/Grades/Grades'
 import Attendance from './pages/Attendance/Attendance'
 import Profile from './pages/Profile/Profile'
-import HomePage from './pages/Home/HomePage'
 import NotFound from './pages/NotFound/NotFound'
-import SystemStatus from './pages/SystemStatus/SystemStatus'
-import QRCodeDemo from './pages/QRCodeDemo/QRCodeDemo'
 
-function App() {
-  return (
-    <HelmetProvider>
-      <ErrorBoundary>
-        <AuthProvider>
-          <NotificationProvider>
-            <Routes>
-                {/* Public Routes - No authentication required */}
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/unauthorized" element={<Unauthorized />} />
-                <Route path="/pending-approval" element={<PendingApproval />} />
-                <Route path="/qr-demo" element={<QRCodeDemo />} />
-                
-                {/* Debug Routes */}
-                <Route path="/debug/auth" element={<AuthTestPage />} />
+// Protected Route Component
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
-                {/* Protected Routes - Authentication required */}
-                {/* General Dashboard - redirects based on role */}
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Dashboard />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* Role-specific Dashboard Routes */}
-                <Route 
-                  path="/student/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="student">
-                      <Layout>
-                        <StudentDashboard />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/teacher/dashboard" 
-                  element={
-                    <ProtectedRoute requireTeacher>
-                      <Layout>
-                        <TeacherDashboard />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/admin/dashboard" 
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Layout>
-                        <AdminDashboard />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* General Protected Routes */}
-                <Route 
-                  path="/students" 
-                  element={
-                    <ProtectedRoute requireTeacher>
-                      <Layout>
-                        <Students />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/classes" 
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Classes />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/grades" 
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Grades />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/attendance" 
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Attendance />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/profile" 
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Profile />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/system-status" 
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Layout>
-                        <SystemStatus />
-                      </Layout>
-                    </ProtectedRoute>
-                  } 
-                />
+// Redux actions
+import { getProfile } from './store/slices/authSlice'
 
-                {/* 404 Page */}
-                <Route path="/404" element={<NotFound />} />
-                
-                {/* Catch all - redirect to 404 */}
-                <Route path="*" element={<Navigate to="/404" replace />} />
-              </Routes>
-            </NotificationProvider>
-          </AuthProvider>
-        </ErrorBoundary>
-      </HelmetProvider>
+const App = () => {
+  const dispatch = useDispatch()
+  const { user, isAuthenticated, isLoading } = useSelector((state) => state.auth)
+
+  // Initialize user profile on app load
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken')
+    if (token && !user) {
+      dispatch(getProfile())
+    }
+  }, [dispatch, user])
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <div>Loading...</div>
+      </div>
     )
+  }
+
+  // Helper function to get dashboard route based on user role
+  const getDashboardRoute = (userRole) => {
+    switch (userRole) {
+      case 'admin':
+        return '/admin/dashboard'
+      case 'teacher':
+        return '/teacher/dashboard'
+      case 'student':
+        return '/student/dashboard'
+      default:
+        return '/dashboard'
+    }
+  }
+
+  return (
+    <SnackbarProvider maxSnack={3}>
+      <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={
+            isAuthenticated ? <Navigate to={getDashboardRoute(user?.role)} replace /> : <Login />
+          } />
+          <Route path="/register" element={
+            isAuthenticated ? <Navigate to={getDashboardRoute(user?.role)} replace /> : <Register />
+          } />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/pending-approval" element={<PendingApproval />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+
+          {/* Root Route */}
+          <Route path="/" element={
+            isAuthenticated ? (
+              <ProtectedRoute>
+                <Layout>
+                  <Navigate to={getDashboardRoute(user?.role)} replace />
+                </Layout>
+              </ProtectedRoute>
+            ) : (
+              <HomePage />
+            )
+          } />
+
+          {/* Dashboard Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Layout>
+                <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute requiredRole="admin">
+              <Layout>
+                <AdminDashboard />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/teacher/dashboard" element={
+            <ProtectedRoute requiredRole="teacher">
+              <Layout>
+                <TeacherDashboard />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/student/dashboard" element={
+            <ProtectedRoute requiredRole="student">
+              <Layout>
+                <StudentDashboard />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          {/* Management Routes */}
+          <Route path="/students" element={
+            <ProtectedRoute requiredRole="admin">
+              <Layout>
+                <Students />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/classes" element={
+            <ProtectedRoute>
+              <Layout>
+                <Classes />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/grades" element={
+            <ProtectedRoute>
+              <Layout>
+                <Grades />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/attendance" element={
+            <ProtectedRoute>
+              <Layout>
+                <Attendance />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          {/* Profile Route */}
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Layout>
+                <Profile />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          {/* 404 Route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+    </SnackbarProvider>
+  )
 }
 
 export default App

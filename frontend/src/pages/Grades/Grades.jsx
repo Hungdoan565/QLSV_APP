@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import {
   Box,
   Typography,
-  Button,
   Paper,
   Table,
   TableBody,
@@ -14,13 +13,14 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  Button,
 } from '@mui/material'
 import {
   Add,
   Edit,
   Delete,
   Visibility,
-  FileDownload,
+  Assessment,
 } from '@mui/icons-material'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchGrades } from '../../store/slices/gradeSlice'
@@ -29,7 +29,7 @@ const Grades = () => {
   const dispatch = useDispatch()
   const { grades, isLoading, error } = useSelector((state) => state.grades)
 
-  useEffect(() => {
+  React.useEffect(() => {
     dispatch(fetchGrades())
   }, [dispatch])
 
@@ -47,21 +47,12 @@ const Grades = () => {
         <Typography variant="h4" component="h1">
           Quản lý điểm số
         </Typography>
-        <Box>
-          <Button
-            variant="outlined"
-            startIcon={<FileDownload />}
-            sx={{ mr: 1 }}
-          >
-            Export Excel
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-          >
-            Thêm điểm
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+        >
+          Thêm điểm số
+        </Button>
       </Box>
 
       {error && (
@@ -78,46 +69,31 @@ const Grades = () => {
                 <TableCell>Sinh viên</TableCell>
                 <TableCell>Lớp học</TableCell>
                 <TableCell>Môn học</TableCell>
-                <TableCell>Loại điểm</TableCell>
                 <TableCell>Điểm số</TableCell>
-                <TableCell>Xếp loại</TableCell>
-                <TableCell>Ghi chú</TableCell>
+                <TableCell>Loại điểm</TableCell>
+                <TableCell>Ngày nhập</TableCell>
                 <TableCell align="center">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {grades.map((grade) => (
                 <TableRow key={grade.id}>
-                  <TableCell>{grade.student?.full_name}</TableCell>
-                  <TableCell>{grade.class_obj?.class_name}</TableCell>
-                  <TableCell>{grade.subject?.subject_name}</TableCell>
+                  <TableCell>
+                    {grade.student?.first_name} {grade.student?.last_name}
+                  </TableCell>
+                  <TableCell>{grade.class?.class_name}</TableCell>
+                  <TableCell>{grade.subject}</TableCell>
                   <TableCell>
                     <Chip
-                      label={
-                        grade.grade_type === 'midterm' ? 'Giữa kỳ' :
-                        grade.grade_type === 'final' ? 'Cuối kỳ' :
-                        grade.grade_type === 'assignment' ? 'Bài tập' :
-                        grade.grade_type === 'quiz' ? 'Kiểm tra' : 'Khác'
-                      }
-                      color="primary"
+                      label={grade.score}
+                      color={grade.score >= 5 ? 'success' : 'error'}
                       size="small"
                     />
                   </TableCell>
+                  <TableCell>{grade.grade_type}</TableCell>
                   <TableCell>
-                    {grade.score}/{grade.max_score}
+                    {grade.created_at ? new Date(grade.created_at).toLocaleDateString('vi-VN') : '-'}
                   </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={grade.letter_grade}
-                      color={
-                        grade.letter_grade === 'A+' || grade.letter_grade === 'A' ? 'success' :
-                        grade.letter_grade === 'B+' || grade.letter_grade === 'B' ? 'info' :
-                        grade.letter_grade === 'C+' || grade.letter_grade === 'C' ? 'warning' : 'error'
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{grade.comment || '-'}</TableCell>
                   <TableCell align="center">
                     <IconButton size="small" color="primary">
                       <Visibility />
