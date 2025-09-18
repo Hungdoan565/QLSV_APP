@@ -1,481 +1,261 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
-  Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Alert,
-  Card,
-  CardContent,
-  CircularProgress,
-  IconButton,
-  Chip,
-  Stack,
   Paper,
+  Typography,
+  alpha,
 } from '@mui/material'
-import {
-  QrCodeScanner as QrIcon,
-  Close,
-  CameraAlt,
-  FlashOn,
-  FlashOff,
-  Refresh,
-  CheckCircle,
-  Error as ErrorIcon,
-} from '@mui/icons-material'
-import { Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useNotification } from '../Notification/NotificationProvider'
-import attendanceService from '../../services/attendanceService'
+import QRCode from 'qrcode'
 
-const QRCodeScanner = ({ 
-  open, 
-  onClose, 
-  onSuccess,
-  title = "Quét QR Code Điểm Danh",
-  subtitle = "Hướng camera vào QR code để điểm danh"
-}) => {
-  const [isScanning, setIsScanning] = useState(false)
-  const [scanResult, setScanResult] = useState(null)
-  const [error, setError] = useState(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [scannerReady, setScannerReady] = useState(false)
-  const [cameraPermission, setCameraPermission] = useState(null)
-  
-  const scannerRef = useRef(null)
-  const { showSuccess, showError, showWarning } = useNotification()
+const QRCodeScanner = () => {
+  const [qrCodeDataURL, setQrCodeDataURL] = useState('')
 
-  // Initialize scanner when dialog opens
   useEffect(() => {
-    if (open && !scannerRef.current) {
-      initializeScanner()
-    }
-    return () => {
-      cleanupScanner()
-    }
-  }, [open])
-
-  const initializeScanner = async () => {
-    try {
-      // Check camera permission
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-      stream.getTracks().forEach(track => track.stop())
-      setCameraPermission('granted')
-      
-      // Initialize HTML5 QR Code Scanner
-      const scanner = new Html5QrcodeScanner(
-        "qr-reader", 
-        { 
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          showTorchButtonIfSupported: true,
-          showZoomSliderIfSupported: true,
-          defaultZoomValueIfSupported: 2,
-        },
-        false
-      )
-
-      scanner.render(onScanSuccess, onScanFailure)
-      scannerRef.current = scanner
-      setScannerReady(true)
-      setIsScanning(true)
-    } catch (error) {
-      console.error('Camera initialization error:', error)
-      setCameraPermission('denied')
-      setError('Không thể truy cập camera. Vui lòng cho phép quyền truy cập camera.')
-    }
-  }
-
-  const cleanupScanner = () => {
-    if (scannerRef.current) {
+    // Generate a real QR code with actual data
+    const generateRealQRCode = async () => {
       try {
-        if (scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
-          scannerRef.current.clear()
-        }
-      } catch (err) {
-        console.warn('Scanner cleanup warning:', err)
-      }
-      scannerRef.current = null
-    }
-    setIsScanning(false)
-    setScannerReady(false)
-  }
-
-  const onScanSuccess = async (decodedText, decodedResult) => {
-    console.log('QR Code scanned:', decodedText)
-    
-    // Stop scanning immediately
-    setIsScanning(false)
-    if (scannerRef.current) {
-      try {
-        scannerRef.current.clear()
-      } catch (err) {
-        console.warn('Scanner clear warning:', err)
-      }
-    }
-
-    setIsProcessing(true)
-    setError(null)
-
-    try {
-      // Parse QR code data
-      const qrData = parseQRCodeData(decodedText)
-      
-      if (!qrData) {
-        throw new Error('QR code không hợp lệ cho điểm danh')
-      }
-
-      // Mark attendance
-      const result = await attendanceService.checkInWithQR({
-        session_id: qrData.sessionId,
-        qr_code_data: decodedText,
-        location: await getCurrentLocation()
-      })
-
-      setScanResult({
-        success: true,
-        message: result.message,
-        data: result.attendance
-      })
-
-      showSuccess(result.message)
-      
-      // Call success callback
-      if (onSuccess) {
-        onSuccess(result)
-      }
-
-      // Auto close after success
-      setTimeout(() => {
-        handleClose()
-      }, 2000)
-
-    } catch (error) {
-      console.error('Attendance marking error:', error)
-      const errorMessage = error.message || 'Điểm danh thất bại'
-      setError(errorMessage)
-      showError(errorMessage)
-      
-      setScanResult({
-        success: false,
-        message: errorMessage
-      })
-
-      // Allow retry after 3 seconds
-      setTimeout(() => {
-        setScanResult(null)
-        setError(null)
-        if (open) {
-          initializeScanner()
-        }
-      }, 3000)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const onScanFailure = (error) => {
-    // Don't show errors for normal scan failures (when no QR detected)
-    if (!error.includes('NotFoundException')) {
-      console.warn('QR Code scan failure:', error)
-    }
-  }
-
-  const parseQRCodeData = (data) => {
-    try {
-      // Expected format: ATTENDANCE:sessionId:timestamp:random
-      if (data.startsWith('ATTENDANCE:')) {
-        const parts = data.split(':')
-        if (parts.length >= 2) {
-          return {
-            sessionId: parts[1],
-            timestamp: parts[2] || null,
-            random: parts[3] || null
+        const qrData = 'EduAttend:session_12345_attendance'
+        const dataURL = await QRCode.toDataURL(qrData, {
+          width: 120,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
           }
+        })
+        setQrCodeDataURL(dataURL)
+      } catch (error) {
+        console.error('Error generating QR code:', error)
+        // Fallback to a simple pattern if QR generation fails
+        setQrCodeDataURL(generateFallbackQR())
+      }
+    }
+
+    generateRealQRCode()
+  }, [])
+
+  // Fallback QR generation if library fails
+  const generateFallbackQR = () => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    canvas.width = 120
+    canvas.height = 120
+    
+    // White background
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, 120, 120)
+    
+    // Black modules
+    ctx.fillStyle = '#000000'
+    const moduleSize = 4
+    const modules = 25
+    
+    // Create a more realistic QR pattern
+    const qrPattern = [
+      [1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,1,1,1,0,1,0,0,1,0,1,0,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1],
+      [0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1],
+      [0,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+      [1,0,1,0,1,0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+      [0,1,0,1,0,1,0,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+      [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+      [0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,1,1,1,0,1,0,0,1,0,1,0,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1],
+      [0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1],
+      [0,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+      [1,0,1,0,1,0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]
+    ]
+    
+    // Draw the QR pattern
+    for (let i = 0; i < modules; i++) {
+      for (let j = 0; j < modules; j++) {
+        if (qrPattern[i] && qrPattern[i][j] === 1) {
+          ctx.fillRect(j * moduleSize, i * moduleSize, moduleSize, moduleSize)
         }
       }
-      
-      // Try JSON format
-      const jsonData = JSON.parse(data)
-      if (jsonData.type === 'attendance' && jsonData.sessionId) {
-        return jsonData
-      }
-      
-      return null
-    } catch {
-      return null
     }
-  }
-
-  const getCurrentLocation = () => {
-    return new Promise((resolve) => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            resolve({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy
-            })
-          },
-          () => {
-            resolve(null) // Location not required, continue without it
-          },
-          { timeout: 5000, enableHighAccuracy: false }
-        )
-      } else {
-        resolve(null)
-      }
-    })
-  }
-
-  const handleClose = () => {
-    cleanupScanner()
-    setScanResult(null)
-    setError(null)
-    setIsProcessing(false)
-    setCameraPermission(null)
-    onClose()
-  }
-
-  const handleRetry = () => {
-    setScanResult(null)
-    setError(null)
-    setIsProcessing(false)
-    initializeScanner()
+    
+    return canvas.toDataURL()
   }
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          minHeight: '500px'
-        }
-      }}
-    >
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <QrIcon color="primary" sx={{ fontSize: 28 }} />
-            <Box>
-              <Typography variant="h6" fontWeight={600}>
-                {title}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {subtitle}
-              </Typography>
-            </Box>
-          </Box>
-          <IconButton onClick={handleClose} edge="end">
-            <Close />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent sx={{ pt: 2 }}>
-        <AnimatePresence mode="wait">
-          {/* Camera Permission Denied */}
-          {cameraPermission === 'denied' && (
-            <motion.div
-              key="permission-denied"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <Card sx={{ bgcolor: 'error.50', border: '1px solid', borderColor: 'error.200' }}>
-                <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                  <ErrorIcon sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Cần quyền truy cập camera
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Để quét QR code, ứng dụng cần quyền truy cập camera. 
-                    Vui lòng cho phép truy cập camera và thử lại.
-                  </Typography>
-                  <Button 
-                    variant="contained" 
-                    startIcon={<Refresh />}
-                    onClick={handleRetry}
-                    sx={{ mt: 2 }}
-                  >
-                    Thử lại
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Processing */}
-          {isProcessing && (
-            <motion.div
-              key="processing"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-            >
-              <Card sx={{ bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
-                <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                  <CircularProgress size={48} sx={{ mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Đang xử lý điểm danh...
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Vui lòng chờ trong giây lát
-                  </Typography>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Scan Result */}
-          {scanResult && (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <Card sx={{ 
-                bgcolor: scanResult.success ? 'success.50' : 'error.50', 
-                border: '1px solid', 
-                borderColor: scanResult.success ? 'success.200' : 'error.200' 
+    <Box sx={{ 
+      position: 'relative', 
+      display: 'flex', 
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100%',
+      minHeight: 400
+    }}>
+      {/* Compact QR Scanner */}
+      <Paper
+        elevation={12}
+        sx={{
+          p: 3,
+          borderRadius: 4,
+          bgcolor: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(20px)',
+          border: '2px solid rgba(255,255,255,0.3)',
+          width: 240,
+          height: 320,
+          position: 'relative',
+          animation: 'gentleFloat 4s ease-in-out infinite',
+          '@keyframes gentleFloat': {
+            '0%, 100%': { transform: 'translateY(0px)' },
+            '50%': { transform: 'translateY(-8px)' },
+          },
+        }}
+      >
+        <Typography variant="h6" fontWeight="bold" color="#6366f1" gutterBottom sx={{ textAlign: 'center' }}>
+          📱 QR Scanner
+        </Typography>
+        
+        {/* QR Code Scanner Area - Compact */}
+        <Box sx={{ 
+          position: 'relative',
+          width: '100%',
+          height: 160,
+          bgcolor: '#000',
+          borderRadius: 2,
+          overflow: 'hidden',
+          mb: 2,
+          border: '2px solid #6366f1',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {/* Real QR Code */}
+          <Box sx={{
+            position: 'relative',
+            width: 100,
+            height: 100,
+            bgcolor: '#fff',
+            borderRadius: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden'
+          }}>
+            {qrCodeDataURL ? (
+              <img 
+                src={qrCodeDataURL} 
+                alt="QR Code for EduAttend attendance" 
+                style={{ 
+                  width: '100%', 
+                  height: '100%',
+                  objectFit: 'contain'
+                }}
+              />
+            ) : (
+              <Box sx={{
+                width: '100%',
+                height: '100%',
+                bgcolor: '#f5f5f5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#666'
               }}>
-                <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                  {scanResult.success ? (
-                    <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
-                  ) : (
-                    <ErrorIcon sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
-                  )}
-                  <Typography variant="h6" gutterBottom>
-                    {scanResult.success ? 'Điểm danh thành công!' : 'Điểm danh thất bại'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {scanResult.message}
-                  </Typography>
-                  {scanResult.success && scanResult.data && (
-                    <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2 }}>
-                      <Chip 
-                        label={`Thời gian: ${new Date(scanResult.data.marked_at).toLocaleTimeString('vi-VN')}`}
-                        size="small"
-                        color="success"
-                        variant="outlined"
-                      />
-                    </Stack>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Scanner Interface */}
-          {cameraPermission === 'granted' && !isProcessing && !scanResult && (
-            <motion.div
-              key="scanner"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <Box sx={{ textAlign: 'center' }}>
-                {/* Scanner Container */}
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    p: 2, 
-                    border: '2px dashed', 
-                    borderColor: 'primary.main',
-                    borderRadius: 3,
-                    bgcolor: 'grey.50',
-                    mb: 2
-                  }}
-                >
-                  <div id="qr-reader" style={{ width: '100%' }}></div>
-                </Paper>
-
-                {/* Status */}
-                {isScanning && (
-                  <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                    <Box sx={{ 
-                      width: 8, 
-                      height: 8, 
-                      borderRadius: '50%', 
-                      bgcolor: 'success.main',
-                      animation: 'pulse 2s infinite'
-                    }} />
-                    <Typography variant="body2" color="success.main" fontWeight={600}>
-                      Đang quét...
-                    </Typography>
-                  </Stack>
-                )}
-
-                {/* Instructions */}
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                  💡 Giữ camera ổn định và hướng vào QR code để được quét tự động
-                </Typography>
+                Loading QR...
               </Box>
-            </motion.div>
-          )}
+            )}
+          </Box>
 
-          {/* Error State */}
-          {error && !isProcessing && !scanResult && (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <Alert 
-                severity="error" 
-                sx={{ mb: 2 }}
-                action={
-                  <Button 
-                    color="inherit" 
-                    size="small" 
-                    onClick={handleRetry}
-                    startIcon={<Refresh />}
-                  >
-                    Thử lại
-                  </Button>
-                }
-              >
-                {error}
-              </Alert>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </DialogContent>
+          {/* Scanning Line - More subtle */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 2,
+              background: 'linear-gradient(90deg, transparent 0%, #00ff00 50%, transparent 100%)',
+              animation: 'scanLine 3s ease-in-out infinite',
+              '@keyframes scanLine': {
+                '0%': { transform: 'translateY(0px)', opacity: 0.8 },
+                '50%': { transform: 'translateY(80px)', opacity: 1 },
+                '100%': { transform: 'translateY(158px)', opacity: 0.8 },
+              },
+            }}
+          />
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleClose} variant="outlined">
-          Đóng
-        </Button>
-        {error && !isProcessing && (
-          <Button 
-            onClick={handleRetry} 
-            variant="contained"
-            startIcon={<Refresh />}
-          >
-            Thử lại
-          </Button>
-        )}
-      </DialogActions>
+          {/* Subtle Corner Indicators */}
+          <Box sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            width: 16,
+            height: 16,
+            border: '2px solid #00ff00',
+            borderRight: 'none',
+            borderBottom: 'none',
+            opacity: 0.7
+          }} />
+          <Box sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 16,
+            height: 16,
+            border: '2px solid #00ff00',
+            borderLeft: 'none',
+            borderBottom: 'none',
+            opacity: 0.7
+          }} />
+          <Box sx={{
+            position: 'absolute',
+            bottom: 8,
+            left: 8,
+            width: 16,
+            height: 16,
+            border: '2px solid #00ff00',
+            borderRight: 'none',
+            borderTop: 'none',
+            opacity: 0.7
+          }} />
+          <Box sx={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            width: 16,
+            height: 16,
+            border: '2px solid #00ff00',
+            borderLeft: 'none',
+            borderTop: 'none',
+            opacity: 0.7
+          }} />
+        </Box>
 
-      {/* Pulse animation for scanning indicator */}
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-      `}</style>
-    </Dialog>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
+          Quét QR → Điểm danh tự động
+        </Typography>
+        
+        <Box sx={{ 
+          bgcolor: '#f0f9ff', 
+          p: 1.5, 
+          borderRadius: 2, 
+          border: '1px solid #e0f2fe',
+          textAlign: 'center'
+        }}>
+          <Typography variant="caption" color="#0369a1" sx={{ fontWeight: 600 }}>
+            ✅ 25/30 sinh viên đã điểm danh
+          </Typography>
+        </Box>
+      </Paper>
+    </Box>
   )
 }
 

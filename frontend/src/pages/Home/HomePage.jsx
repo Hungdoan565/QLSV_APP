@@ -1,170 +1,75 @@
-import React from 'react'
-import {
-  Box,
-  Container,
-  Typography,
-  Button,
-  Paper,
-  Grid,
-  Card,
-  CardContent,
-  useTheme,
-} from '@mui/material'
-import {
-  School,
-  People,
-  Assessment,
-  QrCodeScanner,
-  Login,
-  PersonAdd,
-} from '@mui/icons-material'
-import { Link } from 'react-router-dom'
+import React, { useState, lazy, Suspense } from 'react'
+import { Box, useTheme, useMediaQuery } from '@mui/material'
+import Navigation from '../../components/Layout/Navigation'
+import HeroSection from '../../components/HomePage/HeroSection'
+import StatsSection from '../../components/HomePage/StatsSection'
+import FeaturesSection from '../../components/HomePage/FeaturesSection'
+import TestimonialsSection from '../../components/HomePage/TestimonialsSection'
+import CTASection from '../../components/HomePage/CTASection'
+import Footer from '../../components/Layout/Footer'
+
+// Lazy load components for better performance
+const LazyStatsSection = lazy(() => import('../../components/HomePage/StatsSection'))
+const LazyFeaturesSection = lazy(() => import('../../components/HomePage/FeaturesSection'))
+const LazyTestimonialsSection = lazy(() => import('../../components/HomePage/TestimonialsSection'))
 
 const HomePage = () => {
   const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const [mobileOpen, setMobileOpen] = useState(false)
 
-  const features = [
-    {
-      icon: <People />,
-      title: 'Quản lý Sinh viên',
-      description: 'Quản lý thông tin sinh viên một cách hiệu quả'
-    },
-    {
-      icon: <School />,
-      title: 'Quản lý Lớp học',
-      description: 'Tổ chức và quản lý các lớp học'
-    },
-    {
-      icon: <Assessment />,
-      title: 'Quản lý Điểm số',
-      description: 'Theo dõi và quản lý điểm số sinh viên'
-    },
-    {
-      icon: <QrCodeScanner />,
-      title: 'Điểm danh QR',
-      description: 'Điểm danh thông minh với công nghệ QR code'
-    }
-  ]
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen)
+  }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Header */}
-      <Box
-        sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          py: 8,
-        }}
-      >
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center' }}>
-            <School sx={{ fontSize: 64, mb: 2 }} />
-            <Typography variant="h2" component="h1" fontWeight="bold" gutterBottom>
-              EduAttend
-            </Typography>
-            <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
-              Hệ thống Quản lý Sinh viên Thông minh
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Button
-                component={Link}
-                to="/login"
-                variant="contained"
-                size="large"
-                startIcon={<Login />}
-                sx={{
-                  bgcolor: 'white',
-                  color: 'primary.main',
-                  '&:hover': {
-                    bgcolor: 'grey.100',
-                  },
-                }}
-              >
-                Đăng nhập
-              </Button>
-              <Button
-                component={Link}
-                to="/register"
-                variant="outlined"
-                size="large"
-                startIcon={<PersonAdd />}
-                sx={{
-                  borderColor: 'white',
-                  color: 'white',
-                  '&:hover': {
-                    borderColor: 'white',
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                  },
-                }}
-              >
-                Đăng ký
-              </Button>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
+    <Box 
+      component="main" 
+      role="main"
+      sx={{ minHeight: '100vh', bgcolor: 'background.default' }}
+    >
+      {/* Navigation */}
+      <Navigation 
+        mobileOpen={mobileOpen}
+        handleDrawerToggle={handleDrawerToggle}
+        isMobile={isMobile}
+      />
 
-      {/* Features Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Typography variant="h3" component="h2" textAlign="center" gutterBottom fontWeight="bold">
-          Tính năng nổi bật
-        </Typography>
-        <Typography variant="h6" textAlign="center" color="text.secondary" sx={{ mb: 6 }}>
-          Hệ thống quản lý sinh viên toàn diện với công nghệ hiện đại
-        </Typography>
+      {/* Main Content */}
+      <Box sx={{ pt: 10 }}>
+        {/* Hero Section with QR Scanner */}
+        <section aria-labelledby="hero-heading">
+          <HeroSection />
+        </section>
 
-        <Grid container spacing={4}>
-          {features.map((feature, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card
-                sx={{
-                  height: '100%',
-                  textAlign: 'center',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                  },
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box
-                    sx={{
-                      display: 'inline-flex',
-                      p: 2,
-                      borderRadius: '50%',
-                      bgcolor: 'primary.main',
-                      color: 'white',
-                      mb: 2,
-                    }}
-                  >
-                    {feature.icon}
-                  </Box>
-                  <Typography variant="h6" gutterBottom fontWeight="bold">
-                    {feature.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {feature.description}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+        {/* Stats Section */}
+        <section aria-labelledby="stats-heading">
+          <Suspense fallback={<div role="status" aria-label="Loading statistics">Loading...</div>}>
+            <LazyStatsSection />
+          </Suspense>
+        </section>
 
-      {/* Footer */}
-      <Box
-        sx={{
-          bgcolor: 'grey.100',
-          py: 4,
-          mt: 8,
-        }}
-      >
-        <Container maxWidth="lg">
-          <Typography variant="body2" color="text.secondary" textAlign="center">
-            © 2024 EduAttend - Hệ thống Quản lý Sinh viên. Tất cả quyền được bảo lưu.
-          </Typography>
-        </Container>
+        {/* Features Section */}
+        <section aria-labelledby="features-heading">
+          <Suspense fallback={<div role="status" aria-label="Loading features">Loading...</div>}>
+            <LazyFeaturesSection />
+          </Suspense>
+        </section>
+
+        {/* Testimonials Section */}
+        <section aria-labelledby="testimonials-heading">
+          <Suspense fallback={<div role="status" aria-label="Loading testimonials">Loading...</div>}>
+            <LazyTestimonialsSection />
+          </Suspense>
+        </section>
+
+        {/* CTA Section */}
+        <section aria-labelledby="cta-heading">
+          <CTASection />
+        </section>
+
+        {/* Footer */}
+        <Footer />
       </Box>
     </Box>
   )
