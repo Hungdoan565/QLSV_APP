@@ -29,8 +29,14 @@ import Attendance from './pages/Attendance/Attendance'
 import Profile from './pages/Profile/Profile'
 import NotFound from './pages/NotFound/NotFound'
 
+// Debug Components
+import LoginTest from './pages/Debug/LoginTest'
+
 // Protected Route Component
 import ProtectedRoute from './components/auth/ProtectedRoute'
+
+// Error Boundary
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 
 // Redux actions
 import { getProfile } from './store/slices/authSlice'
@@ -76,8 +82,9 @@ const App = () => {
   }
 
   return (
-    <SnackbarProvider maxSnack={3}>
-      <Routes>
+    <ErrorBoundary>
+      <SnackbarProvider maxSnack={3}>
+        <Routes>
           {/* Public Routes */}
           <Route path="/login" element={
             isAuthenticated ? <Navigate to={getDashboardRoute(user?.role)} replace /> : <Login />
@@ -178,10 +185,14 @@ const App = () => {
             </ProtectedRoute>
           } />
 
+          {/* Debug Routes */}
+          <Route path="/debug/login-test" element={<LoginTest />} />
+
           {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-    </SnackbarProvider>
+      </SnackbarProvider>
+    </ErrorBoundary>
   )
 }
 

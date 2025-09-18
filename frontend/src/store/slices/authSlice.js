@@ -7,9 +7,15 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authService.login(credentials)
-      localStorage.setItem('accessToken', response.data.access)
-      localStorage.setItem('refreshToken', response.data.refresh)
-      return response.data
+      
+      if (response.success) {
+        // Store tokens
+        localStorage.setItem('accessToken', response.data.tokens.access)
+        localStorage.setItem('refreshToken', response.data.tokens.refresh)
+        return response.data
+      } else {
+        return rejectWithValue(response.error)
+      }
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message)
     }
@@ -101,8 +107,8 @@ const authSlice = createSlice({
         state.isLoading = false
         state.isAuthenticated = true
         state.user = action.payload.user
-        state.token = action.payload.access
-        state.refreshToken = action.payload.refresh
+        state.token = action.payload.tokens.access
+        state.refreshToken = action.payload.tokens.refresh
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false
@@ -115,10 +121,11 @@ const authSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.isLoading = false
-        state.isAuthenticated = true
-        state.user = action.payload.user
-        state.token = action.payload.access
-        state.refreshToken = action.payload.refresh
+        // Don't auto-login after register, let user verify email first
+        // state.isAuthenticated = true
+        // state.user = action.payload.user
+        // state.token = action.payload.tokens.access
+        // state.refreshToken = action.payload.tokens.refresh
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false

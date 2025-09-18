@@ -6,7 +6,7 @@
 import axios from 'axios'
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:8000/api'
+const API_BASE_URL = 'http://127.0.0.1:8000/api'
 const AUTH_ENDPOINTS = {
   LOGIN: '/auth/login/',
   REGISTER: '/auth/register/',
