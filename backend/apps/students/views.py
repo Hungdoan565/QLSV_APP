@@ -71,33 +71,187 @@ def bulk_create_students(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def import_excel(request):
-    """Import students from Excel (placeholder - needs pandas)"""
-    return Response({
-        'success': False,
-        'message': 'Excel import requires pandas. Please install: pip install pandas openpyxl'
-    }, status=status.HTTP_501_NOT_IMPLEMENTED)
+    """Import students from Excel file"""
+    try:
+        if 'file' not in request.FILES:
+            return Response({
+                'success': False,
+                'message': 'No file provided'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        excel_file = request.FILES['file']
+        
+        # Simple CSV import (without pandas dependency)
+        import csv
+        import io
+        
+        # Read Excel as CSV (simplified approach)
+        file_content = excel_file.read().decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(file_content))
+        
+        created_students = []
+        errors = []
+        
+        for row_num, row in enumerate(csv_reader, start=2):
+            try:
+                student_data = {
+                    'student_id': row.get('student_id', '').strip(),
+                    'first_name': row.get('first_name', '').strip(),
+                    'last_name': row.get('last_name', '').strip(),
+                    'email': row.get('email', '').strip(),
+                    'phone': row.get('phone', '').strip(),
+                    'gender': row.get('gender', 'male').strip(),
+                    'date_of_birth': row.get('date_of_birth', '2000-01-01').strip(),
+                    'address': row.get('address', '').strip(),
+                }
+                
+                serializer = StudentCreateSerializer(data=student_data)
+                if serializer.is_valid():
+                    student = serializer.save()
+                    created_students.append(StudentSerializer(student).data)
+                else:
+                    errors.append({
+                        'row': row_num,
+                        'errors': serializer.errors,
+                        'data': student_data
+                    })
+            except Exception as e:
+                errors.append({
+                    'row': row_num,
+                    'error': str(e),
+                    'data': row
+                })
+        
+        return Response({
+            'success': True,
+            'created_count': len(created_students),
+            'created_students': created_students,
+            'errors': errors,
+            'message': f'Successfully imported {len(created_students)} students'
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def export_excel(request):
-    """Export students to Excel (placeholder - needs pandas)"""
-    return Response({
-        'success': False,
-        'message': 'Excel export requires pandas. Please install: pip install pandas openpyxl'
-    }, status=status.HTTP_501_NOT_IMPLEMENTED)
+    """Export students to Excel/CSV file"""
+    try:
+        import csv
+        import io
+        
+        # Get all students
+        students = Student.objects.all()
+        
+        # Create CSV content
+        output = io.StringIO()
+        fieldnames = [
+            'student_id', 'first_name', 'last_name', 'email', 
+            'phone', 'gender', 'date_of_birth', 'address', 'is_active'
+        ]
+        
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        
+        for student in students:
+            writer.writerow({
+                'student_id': student.student_id,
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'email': student.email,
+                'phone': student.phone or '',
+                'gender': student.gender,
+                'date_of_birth': student.date_of_birth,
+                'address': student.address or '',
+                'is_active': student.is_active
+            })
+        
+        # Create HTTP response
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='text/csv'
+        )
+        response['Content-Disposition'] = 'attachment; filename="students_export.csv"'
+        
+        return response
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def student_statistics(request):
-    """Get student statistics"""
-    total_students = Student.objects.count()
-    active_students = Student.objects.filter(is_active=True).count()
-    inactive_students = Student.objects.filter(is_active=False).count()
-    
-    return Response({
-        'total_students': total_students,
-        'active_students': active_students,
-        'inactive_students': inactive_students,
-    })
+    """Get comprehensive student statistics"""
+    try:
+        from django.db.models import Count, Q
+        from datetime import date, timedelta
+        
+        # Basic counts
+        total_students = Student.objects.count()
+        active_students = Student.objects.filter(is_active=True).count()
+        inactive_students = Student.objects.filter(is_active=False).count()
+        
+        # Gender distribution
+        gender_stats = Student.objects.values('gender').annotate(count=Count('id'))
+        
+        # Age distribution
+        today = date.today()
+        age_groups = {
+            '18-20': Student.objects.filter(
+                date_of_birth__gte=today - timedelta(days=20*365),
+                date_of_birth__lt=today - timedelta(days=18*365)
+            ).count(),
+            '21-25': Student.objects.filter(
+                date_of_birth__gte=today - timedelta(days=25*365),
+                date_of_birth__lt=today - timedelta(days=21*365)
+            ).count(),
+            '26-30': Student.objects.filter(
+                date_of_birth__gte=today - timedelta(days=30*365),
+                date_of_birth__lt=today - timedelta(days=26*365)
+            ).count(),
+            '30+': Student.objects.filter(
+                date_of_birth__lt=today - timedelta(days=30*365)
+            ).count(),
+        }
+        
+        # Recent registrations (last 30 days)
+        thirty_days_ago = today - timedelta(days=30)
+        recent_registrations = Student.objects.filter(
+            created_at__gte=thirty_days_ago
+        ).count()
+        
+        # Students with missing information
+        missing_phone = Student.objects.filter(phone__isnull=True).count()
+        missing_address = Student.objects.filter(address__isnull=True).count()
+        
+        return Response({
+            'total_students': total_students,
+            'active_students': active_students,
+            'inactive_students': inactive_students,
+            'gender_distribution': list(gender_stats),
+            'age_groups': age_groups,
+            'recent_registrations': recent_registrations,
+            'missing_information': {
+                'missing_phone': missing_phone,
+                'missing_address': missing_address
+            },
+            'completion_rate': round(
+                ((total_students - missing_phone - missing_address) / total_students * 100) 
+                if total_students > 0 else 0, 2
+            )
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -124,32 +124,79 @@ def remove_student_from_class(request, class_id, student_id):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def class_statistics(request):
-    """Get class statistics"""
-    queryset = Class.objects.all()
-    
-    # Filter by teacher if not admin
-    if request.user.role != 'admin':
-        queryset = queryset.filter(teacher=request.user)
-    
-    total_classes = queryset.count()
-    active_classes = queryset.filter(is_active=True).count()
-    
-    # Get average students per class
-    classes_with_students = queryset.filter(class_students__is_active=True).distinct()
-    total_students_in_classes = sum(
-        class_obj.current_students_count for class_obj in classes_with_students
-    )
-    avg_students_per_class = (
-        total_students_in_classes / active_classes if active_classes > 0 else 0
-    )
-    
-    return Response({
-        'total_classes': total_classes,
-        'active_classes': active_classes,
-        'inactive_classes': total_classes - active_classes,
-        'total_students_in_classes': total_students_in_classes,
-        'avg_students_per_class': round(avg_students_per_class, 2),
-    })
+    """Get comprehensive class statistics"""
+    try:
+        from django.db.models import Count, Avg, Q
+        from datetime import date, timedelta
+        
+        queryset = Class.objects.all()
+        
+        # Filter by teacher if not admin
+        if request.user.role != 'admin':
+            queryset = queryset.filter(teacher=request.user)
+        
+        # Basic counts
+        total_classes = queryset.count()
+        active_classes = queryset.filter(is_active=True).count()
+        inactive_classes = queryset.filter(is_active=False).count()
+        
+        # Student enrollment statistics
+        classes_with_students = queryset.filter(class_students__is_active=True).distinct()
+        total_students_in_classes = sum(
+            class_obj.current_students_count for class_obj in classes_with_students
+        )
+        avg_students_per_class = (
+            total_students_in_classes / active_classes if active_classes > 0 else 0
+        )
+        
+        # Capacity analysis
+        full_classes = 0
+        empty_classes = 0
+        
+        for class_obj in classes_with_students:
+            if class_obj.current_students_count >= class_obj.max_students:
+                full_classes += 1
+            elif class_obj.current_students_count == 0:
+                empty_classes += 1
+        
+        # Recent activity
+        thirty_days_ago = date.today() - timedelta(days=30)
+        recent_classes = queryset.filter(created_at__gte=thirty_days_ago).count()
+        
+        # Teacher distribution (for admin)
+        teacher_stats = []
+        if request.user.role == 'admin':
+            teacher_stats = list(
+                queryset.values('teacher__first_name', 'teacher__last_name')
+                .annotate(class_count=Count('id'))
+                .order_by('-class_count')[:10]
+            )
+        
+        return Response({
+            'total_classes': total_classes,
+            'active_classes': active_classes,
+            'inactive_classes': inactive_classes,
+            'total_students_in_classes': total_students_in_classes,
+            'avg_students_per_class': round(avg_students_per_class, 2),
+            'capacity_analysis': {
+                'full_classes': full_classes,
+                'empty_classes': empty_classes,
+                'utilization_rate': round(
+                    (total_students_in_classes / (active_classes * 50) * 100) 
+                    if active_classes > 0 else 0, 2
+                )
+            },
+            'recent_activity': {
+                'new_classes_last_30_days': recent_classes
+            },
+            'teacher_distribution': teacher_stats
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])

@@ -27,7 +27,7 @@ class GradeListCreateView(generics.ListCreateAPIView):
         if class_id is not None:
             queryset = queryset.filter(class_instance_id=class_id)
             
-        return queryset.order_by('-date_graded')
+        return queryset.order_by('-created_at')
 
 
 class GradeDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -40,21 +40,266 @@ class GradeDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def grade_statistics(request):
-    """Get grade statistics"""
-    total_grades = Grade.objects.count()
-    avg_score = Grade.objects.aggregate(avg_score=Avg('score'))['avg_score']
-    
-    return Response({
-        'total_grades': total_grades,
-        'average_score': round(avg_score, 2) if avg_score else 0,
-    })
+    """Get comprehensive grade statistics"""
+    try:
+        from django.db.models import Avg, Count, Min, Max, Q
+        from datetime import date, timedelta
+        
+        # Basic statistics
+        total_grades = Grade.objects.count()
+        avg_score = Grade.objects.aggregate(avg_score=Avg('score'))['avg_score']
+        min_score = Grade.objects.aggregate(min_score=Min('score'))['min_score']
+        max_score = Grade.objects.aggregate(max_score=Max('score'))['max_score']
+        
+        # Grade distribution by type
+        grade_by_type = Grade.objects.values('grade_type').annotate(
+            count=Count('id'),
+            avg_score=Avg('score')
+        ).order_by('-count')
+        
+        # Grade distribution by letter grade
+        letter_grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']
+        grade_distribution = {}
+        
+        for letter in letter_grades:
+            count = Grade.objects.filter(
+                score__gte=_get_min_score_for_letter(letter),
+                score__lt=_get_max_score_for_letter(letter)
+            ).count()
+            grade_distribution[letter] = count
+        
+        # Recent activity
+        thirty_days_ago = date.today() - timedelta(days=30)
+        recent_grades = Grade.objects.filter(created_at__gte=thirty_days_ago).count()
+        
+        # Subject performance
+        subject_stats = Grade.objects.values('subject__subject_name').annotate(
+            count=Count('id'),
+            avg_score=Avg('score'),
+            min_score=Min('score'),
+            max_score=Max('score')
+        ).order_by('-avg_score')[:10]
+        
+        return Response({
+            'total_grades': total_grades,
+            'average_score': round(avg_score, 2) if avg_score else 0,
+            'score_range': {
+                'min': float(min_score) if min_score else 0,
+                'max': float(max_score) if max_score else 0
+            },
+            'grade_by_type': list(grade_by_type),
+            'grade_distribution': grade_distribution,
+            'recent_activity': {
+                'grades_last_30_days': recent_grades
+            },
+            'subject_performance': list(subject_stats)
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def _get_min_score_for_letter(letter):
+    """Get minimum score for letter grade"""
+    grade_ranges = {
+        'A+': 9.5, 'A': 8.5, 'A-': 8.0,
+        'B+': 7.5, 'B': 7.0, 'B-': 6.5,
+        'C+': 6.0, 'C': 5.5, 'C-': 5.0,
+        'D+': 4.5, 'D': 4.0, 'D-': 3.5,
+        'F': 0
+    }
+    return grade_ranges.get(letter, 0)
+
+
+def _get_max_score_for_letter(letter):
+    """Get maximum score for letter grade"""
+    if letter == 'A+':
+        return 10.1
+    return _get_min_score_for_letter(letter) + 0.5
 
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
-def export_grades(request):
-    """Export grades (placeholder - needs pandas)"""
-    return Response({
-        'success': False,
-        'message': 'Excel export requires pandas. Please install: pip install pandas openpyxl'
-    }, status=status.HTTP_501_NOT_IMPLEMENTED)
+def student_grade_summary(request, student_id):
+    """Get comprehensive grade summary for a student"""
+    try:
+        from apps.students.models import Student
+        
+        student = Student.objects.get(student_id=student_id)
+        grades = Grade.objects.filter(student=student)
+        
+        # Overall statistics
+        total_grades = grades.count()
+        avg_score = grades.aggregate(avg=Avg('score'))['avg']
+        
+        # Grade by subject
+        subject_grades = grades.values('subject__subject_name', 'subject__subject_id').annotate(
+            count=Count('id'),
+            avg_score=Avg('score'),
+            latest_grade=Max('created_at')
+        ).order_by('-avg_score')
+        
+        # Grade by type
+        type_grades = grades.values('grade_type').annotate(
+            count=Count('id'),
+            avg_score=Avg('score')
+        ).order_by('-avg_score')
+        
+        # Recent grades
+        recent_grades = grades.order_by('-created_at')[:10]
+        
+        # GPA calculation (simplified)
+        gpa = _calculate_gpa(grades)
+        
+        return Response({
+            'student_info': {
+                'student_id': student.student_id,
+                'full_name': student.full_name,
+                'email': student.email
+            },
+            'overall_stats': {
+                'total_grades': total_grades,
+                'average_score': round(avg_score, 2) if avg_score else 0,
+                'gpa': gpa
+            },
+            'subject_performance': list(subject_grades),
+            'grade_by_type': list(type_grades),
+            'recent_grades': [
+                {
+                    'subject': grade.subject.subject_name,
+                    'grade_type': grade.get_grade_type_display(),
+                    'score': float(grade.score),
+                    'max_score': float(grade.max_score),
+                    'percentage': grade.percentage,
+                    'letter_grade': grade.letter_grade,
+                    'created_at': grade.created_at
+                } for grade in recent_grades
+            ]
+        })
+        
+    except Student.DoesNotExist:
+        return Response({'error': 'Không tìm thấy sinh viên'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def class_grade_summary(request, class_id):
+    """Get grade summary for all students in a class"""
+    try:
+        from apps.classes.models import Class
+        
+        class_obj = Class.objects.get(id=class_id)
+        
+        # Check permission
+        if request.user.role != 'admin' and class_obj.teacher != request.user:
+            return Response(
+                {'error': 'Bạn không có quyền xem điểm của lớp này'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get all grades for this class
+        grades = Grade.objects.filter(class_obj=class_obj)
+        
+        # Class statistics
+        total_grades = grades.count()
+        avg_score = grades.aggregate(avg=Avg('score'))['avg']
+        
+        # Student performance
+        student_performance = grades.values(
+            'student__student_id', 
+            'student__first_name', 
+            'student__last_name'
+        ).annotate(
+            count=Count('id'),
+            avg_score=Avg('score'),
+            min_score=Min('score'),
+            max_score=Max('score')
+        ).order_by('-avg_score')
+        
+        # Subject performance
+        subject_performance = grades.values('subject__subject_name').annotate(
+            count=Count('id'),
+            avg_score=Avg('score'),
+            min_score=Min('score'),
+            max_score=Max('score')
+        ).order_by('-avg_score')
+        
+        # Grade distribution
+        grade_distribution = {}
+        for letter in ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']:
+            count = grades.filter(
+                score__gte=_get_min_score_for_letter(letter),
+                score__lt=_get_max_score_for_letter(letter)
+            ).count()
+            grade_distribution[letter] = count
+        
+        return Response({
+            'class_info': {
+                'class_id': class_obj.class_id,
+                'class_name': class_obj.class_name,
+                'teacher': f"{class_obj.teacher.first_name} {class_obj.teacher.last_name}",
+                'total_students': class_obj.current_students_count
+            },
+            'class_statistics': {
+                'total_grades': total_grades,
+                'average_score': round(avg_score, 2) if avg_score else 0,
+                'grade_distribution': grade_distribution
+            },
+            'student_performance': list(student_performance),
+            'subject_performance': list(subject_performance)
+        })
+        
+    except Class.DoesNotExist:
+        return Response({'error': 'Không tìm thấy lớp học'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def _calculate_gpa(grades):
+    """Calculate GPA based on grades"""
+    if not grades.exists():
+        return 0.0
+    
+    total_points = 0
+    total_credits = 0
+    
+    for grade in grades:
+        # Convert score to GPA points
+        gpa_points = _score_to_gpa_points(grade.score)
+        credits = grade.subject.credits if hasattr(grade.subject, 'credits') else 3
+        
+        total_points += gpa_points * credits
+        total_credits += credits
+    
+    return round(total_points / total_credits, 2) if total_credits > 0 else 0.0
+
+
+def _score_to_gpa_points(score):
+    """Convert score to GPA points"""
+    if score >= 9.0:
+        return 4.0
+    elif score >= 8.5:
+        return 3.7
+    elif score >= 8.0:
+        return 3.3
+    elif score >= 7.5:
+        return 3.0
+    elif score >= 7.0:
+        return 2.7
+    elif score >= 6.5:
+        return 2.3
+    elif score >= 6.0:
+        return 2.0
+    elif score >= 5.5:
+        return 1.7
+    elif score >= 5.0:
+        return 1.3
+    elif score >= 4.5:
+        return 1.0
+    else:
+        return 0.0
