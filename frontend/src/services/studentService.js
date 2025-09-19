@@ -1,25 +1,25 @@
-import api from './api'
+import apiService from './apiService'
 
 const studentService = {
-  getStudents: (params) => api.get('/students/', { params }),
-  getStudent: (id) => api.get(`/students/${id}/`),
-  createStudent: (studentData) => api.post('/students/', studentData),
-  updateStudent: (id, studentData) => api.put(`/students/${id}/`, studentData),
-  deleteStudent: (id) => api.delete(`/students/${id}/`),
+  getStudents: (params) => apiService.axiosInstance.get('/students/', { params }),
+  getStudent: (id) => apiService.axiosInstance.get(`/students/${id}/`),
+  createStudent: (studentData) => apiService.axiosInstance.post('/students/', studentData),
+  updateStudent: (id, studentData) => apiService.axiosInstance.put(`/students/${id}/`, studentData),
+  deleteStudent: (id) => apiService.axiosInstance.delete(`/students/${id}/`),
   importStudents: (file) => {
     const formData = new FormData()
     formData.append('file', file)
-    return api.post('/students/import-excel/', formData, {
+    return apiService.axiosInstance.post('/students/import-excel/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
   },
-  exportStudents: (params) => api.get('/students/export-excel/', { 
+  exportStudents: (params) => apiService.axiosInstance.get('/students/export-excel/', { 
     params,
     responseType: 'blob'
   }),
-  getStudentStatistics: () => api.get('/students/statistics/'),
+  getStudentStatistics: () => apiService.axiosInstance.get('/students/statistics/'),
 }
 
 export default studentService

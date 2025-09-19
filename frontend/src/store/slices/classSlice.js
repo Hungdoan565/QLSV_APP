@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import api from '../../services/api'
+import apiService from '../../services/apiService'
 
 // Async thunks
 export const fetchClasses = createAsyncThunk(
   'classes/fetchClasses',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/classes/')
+      const response = await apiService.axiosInstance.get('/classes/')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Không thể tải danh sách lớp học')
@@ -18,7 +18,7 @@ export const fetchClassStatistics = createAsyncThunk(
   'classes/fetchClassStatistics',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/classes/statistics/')
+      const response = await apiService.axiosInstance.get('/classes/statistics/')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Không thể tải thống kê lớp học')

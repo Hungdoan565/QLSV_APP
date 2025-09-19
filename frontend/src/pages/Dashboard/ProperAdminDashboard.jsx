@@ -39,14 +39,14 @@ import {
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
-import { useAuth } from '../../contexts/AuthContext'
+import { useSelector, useDispatch } from 'react-redux'
 import studentService from '../../services/studentService'
 import classService from '../../services/classService'
 import attendanceService from '../../services/attendanceService'
 import gradeService from '../../services/gradeService'
 
 const ProperAdminDashboard = () => {
-  const { user } = useAuth()
+  const { user } = useSelector((state) => state.auth)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [systemStats, setSystemStats] = useState({

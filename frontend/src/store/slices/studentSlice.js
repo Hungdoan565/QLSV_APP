@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import api from '../../services/api'
+import apiService from '../../services/apiService'
 
 // Async thunks
 export const fetchStudents = createAsyncThunk(
   'students/fetchStudents',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/students/')
+      const response = await apiService.axiosInstance.get('/students/')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Không thể tải danh sách sinh viên')
@@ -18,7 +18,7 @@ export const createStudent = createAsyncThunk(
   'students/createStudent',
   async (studentData, { rejectWithValue }) => {
     try {
-      const response = await api.post('/students/', studentData)
+      const response = await apiService.axiosInstance.post('/students/', studentData)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Không thể tạo sinh viên')
@@ -30,7 +30,7 @@ export const updateStudent = createAsyncThunk(
   'students/updateStudent',
   async ({ id, studentData }, { rejectWithValue }) => {
     try {
-      const response = await api.put(`/students/${id}/`, studentData)
+      const response = await apiService.axiosInstance.put(`/students/${id}/`, studentData)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Không thể cập nhật sinh viên')
@@ -42,7 +42,7 @@ export const deleteStudent = createAsyncThunk(
   'students/deleteStudent',
   async (id, { rejectWithValue }) => {
     try {
-      await api.delete(`/students/${id}/`)
+      await apiService.axiosInstance.delete(`/students/${id}/`)
       return id
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Không thể xóa sinh viên')

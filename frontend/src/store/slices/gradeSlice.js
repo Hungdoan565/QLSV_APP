@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import api from '../../services/api'
+import apiService from '../../services/apiService'
 
 // Async thunks
 export const fetchGrades = createAsyncThunk(
   'grades/fetchGrades',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/grades/')
+      const response = await apiService.axiosInstance.get('/grades/')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Không thể tải danh sách điểm số')

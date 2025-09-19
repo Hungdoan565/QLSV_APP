@@ -176,7 +176,7 @@ import {
 } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
-import { useAuth } from '../../contexts/AuthContext'
+import { useSelector, useDispatch } from 'react-redux'
 import attendanceService from '../../services/attendanceService'
 import gradeService from '../../services/gradeService'
 import studentService from '../../services/studentService'
@@ -332,7 +332,7 @@ const StatCard = ({ title, value, icon, color, subtitle, trend, loading, onClick
 }
 
 const ProductionStudentDashboard = () => {
-  const { user } = useAuth()
+  const { user } = useSelector((state) => state.auth)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   

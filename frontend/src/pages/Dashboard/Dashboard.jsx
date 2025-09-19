@@ -1,17 +1,37 @@
 import React from 'react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useSelector } from 'react-redux'
+import { Box, CircularProgress, Typography } from '@mui/material'
 import ProperAdminDashboard from './ProperAdminDashboard'
 import ProperTeacherDashboard from './ProperTeacherDashboard'
 import ProductionStudentDashboard from './ProductionStudentDashboard'
 
 const Dashboard = () => {
-  const { user } = useAuth()
+  const { user, isLoading } = useSelector((state) => state.auth)
 
-  // Role-based dashboard rendering
-  if (!user) {
-    return <div>Loading...</div>
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+        <Typography variant="h6" sx={{ ml: 2 }}>
+          Đang tải...
+        </Typography>
+      </Box>
+    )
   }
 
+  // Show error if not authenticated
+  if (!user) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Typography variant="h6" color="error">
+          Vui lòng đăng nhập để tiếp tục
+        </Typography>
+      </Box>
+    )
+  }
+
+  // Role-based dashboard rendering
   switch (user.role) {
     case 'admin':
       return <ProperAdminDashboard />

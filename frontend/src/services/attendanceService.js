@@ -1,28 +1,28 @@
-import api from './api'
+import apiService from './apiService'
 
 const attendanceService = {
   // Attendance sessions
-  getSessions: (params) => api.get('/attendance/sessions/', { params }),
-  getSession: (id) => api.get(`/attendance/sessions/${id}/`),
-  createSession: (sessionData) => api.post('/attendance/sessions/', sessionData),
-  updateSession: (id, sessionData) => api.put(`/attendance/sessions/${id}/`, sessionData),
-  deleteSession: (id) => api.delete(`/attendance/sessions/${id}/`),
+  getSessions: (params) => apiService.axiosInstance.get('/attendance/sessions/', { params }),
+  getSession: (id) => apiService.axiosInstance.get(`/attendance/sessions/${id}/`),
+  createSession: (sessionData) => apiService.axiosInstance.post('/attendance/sessions/', sessionData),
+  updateSession: (id, sessionData) => apiService.axiosInstance.put(`/attendance/sessions/${id}/`, sessionData),
+  deleteSession: (id) => apiService.axiosInstance.delete(`/attendance/sessions/${id}/`),
   
   // QR Code functionality
-  generateQRCode: (sessionId) => api.post(`/attendance/sessions/${sessionId}/generate-qr/`),
-  checkInWithQR: (qrData) => api.post('/attendance/check-in-qr/', qrData),
-  getAttendanceAnalytics: (sessionId) => api.get(`/attendance/sessions/${sessionId}/analytics/`),
+  generateQRCode: (sessionId) => apiService.axiosInstance.post(`/attendance/sessions/${sessionId}/generate-qr/`),
+  checkInWithQR: (qrData) => apiService.axiosInstance.post('/attendance/check-in-qr/', qrData),
+  getAttendanceAnalytics: (sessionId) => apiService.axiosInstance.get(`/attendance/sessions/${sessionId}/analytics/`),
   
   // Attendance records
-  getAttendances: (params) => api.get('/attendance/', { params }),
-  getAttendance: (id) => api.get(`/attendance/${id}/`),
-  createAttendance: (attendanceData) => api.post('/attendance/', attendanceData),
-  updateAttendance: (id, attendanceData) => api.put(`/attendance/${id}/`, attendanceData),
-  deleteAttendance: (id) => api.delete(`/attendance/${id}/`),
+  getAttendances: (params) => apiService.axiosInstance.get('/attendance/', { params }),
+  getAttendance: (id) => apiService.axiosInstance.get(`/attendance/${id}/`),
+  createAttendance: (attendanceData) => apiService.axiosInstance.post('/attendance/', attendanceData),
+  updateAttendance: (id, attendanceData) => apiService.axiosInstance.put(`/attendance/${id}/`, attendanceData),
+  deleteAttendance: (id) => apiService.axiosInstance.delete(`/attendance/${id}/`),
   
   // Statistics and export
-  getAttendanceStatistics: () => api.get('/attendance/statistics/'),
-  exportAttendance: (params) => api.get('/attendance/export/', { 
+  getAttendanceStatistics: () => apiService.axiosInstance.get('/attendance/statistics/'),
+  exportAttendance: (params) => apiService.axiosInstance.get('/attendance/export/', { 
     params,
     responseType: 'blob' 
   }),

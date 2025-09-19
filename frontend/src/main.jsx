@@ -11,7 +11,6 @@ import 'dayjs/locale/vi'
 
 import App from './App.jsx'
 import { store } from './store/store.js'
-import { AuthProvider } from './contexts/AuthContext'
 
 import './index.css'
 
@@ -188,14 +187,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <HelmetProvider>
       <Provider store={store}>
         <BrowserRouter>
-          <AuthProvider>
-            <ThemeProvider theme={theme}>
-              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
-                <CssBaseline />
-                <App />
-              </LocalizationProvider>
-            </ThemeProvider>
-          </AuthProvider>
+          <ThemeProvider theme={theme}>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+              <CssBaseline />
+              <App />
+            </LocalizationProvider>
+          </ThemeProvider>
         </BrowserRouter>
       </Provider>
     </HelmetProvider>

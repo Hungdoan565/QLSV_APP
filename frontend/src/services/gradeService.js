@@ -1,20 +1,20 @@
-import api from './api'
+import apiService from './apiService'
 
 const gradeService = {
   // Grades CRUD
-  getGrades: (params) => api.get('/grades/', { params }),
-  getGrade: (id) => api.get(`/grades/${id}/`),
-  createGrade: (gradeData) => api.post('/grades/', gradeData),
-  updateGrade: (id, gradeData) => api.put(`/grades/${id}/`, gradeData),
-  deleteGrade: (id) => api.delete(`/grades/${id}/`),
+  getGrades: (params) => apiService.axiosInstance.get('/grades/', { params }),
+  getGrade: (id) => apiService.axiosInstance.get(`/grades/${id}/`),
+  createGrade: (gradeData) => apiService.axiosInstance.post('/grades/', gradeData),
+  updateGrade: (id, gradeData) => apiService.axiosInstance.put(`/grades/${id}/`, gradeData),
+  deleteGrade: (id) => apiService.axiosInstance.delete(`/grades/${id}/`),
   
   // Grade calculations and summaries
-  getGradeStatistics: () => api.get('/grades/statistics/'),
-  getStudentGradeSummary: (studentId) => api.get(`/grades/student/${studentId}/summary/`),
-  getClassGradeSummary: (classId) => api.get(`/grades/class/${classId}/summary/`),
+  getGradeStatistics: () => apiService.axiosInstance.get('/grades/statistics/'),
+  getStudentGradeSummary: (studentId) => apiService.axiosInstance.get(`/grades/student/${studentId}/summary/`),
+  getClassGradeSummary: (classId) => apiService.axiosInstance.get(`/grades/class/${classId}/summary/`),
   
   // Export functionality
-  exportGrades: (params) => api.get('/grades/export/', { 
+  exportGrades: (params) => apiService.axiosInstance.get('/grades/export/', { 
     params,
     responseType: 'blob' 
   }),

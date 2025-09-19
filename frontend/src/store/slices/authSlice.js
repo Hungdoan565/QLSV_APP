@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import authService from '../../services/authService'
+import apiService from '../../services/apiService'
 
 // Async thunks
 export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await authService.login(credentials)
+      const response = await apiService.login(credentials.email, credentials.password)
       
       if (response.success) {
         // Store tokens
@@ -26,7 +26,7 @@ export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await authService.register(userData)
+      const response = await apiService.register(userData)
       // Don't auto-login after register, let user verify email first
       return response.data
     } catch (error) {
@@ -39,7 +39,7 @@ export const getProfile = createAsyncThunk(
   'auth/getProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await authService.getProfile()
+      const response = await apiService.getProfile()
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message)
@@ -51,7 +51,7 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await authService.updateProfile(userData)
+      const response = await apiService.updateProfile(userData)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message)
@@ -63,8 +63,8 @@ export const changePassword = createAsyncThunk(
   'auth/changePassword',
   async (passwordData, { rejectWithValue }) => {
     try {
-      const response = await authService.changePassword(passwordData)
-      return response.data
+      await apiService.changePassword(passwordData)
+      return {}
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message)
     }

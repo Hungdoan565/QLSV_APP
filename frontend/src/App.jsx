@@ -16,9 +16,6 @@ import Unauthorized from './components/auth/Unauthorized'
 
 // Dashboard Components
 import Dashboard from './pages/Dashboard/Dashboard'
-import AdminDashboard from './pages/Dashboard/AdminDashboard'
-import TeacherDashboard from './pages/Dashboard/TeacherDashboard'
-import StudentDashboard from './pages/Dashboard/StudentDashboard'
 
 // Page Components
 import HomePage from './pages/Home/HomePage'
