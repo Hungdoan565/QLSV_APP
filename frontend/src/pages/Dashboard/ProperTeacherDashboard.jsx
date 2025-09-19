@@ -37,29 +37,18 @@ import {
   Visibility as VisibilityIcon,
   Add as AddIcon,
   Edit as EditIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
-import { useSelector, useDispatch } from 'react-redux'
-import classService from '../../services/classService'
-import attendanceService from '../../services/attendanceService'
-import gradeService from '../../services/gradeService'
+import ExcelUpload from '../../components/ExcelUpload/ExcelUpload'
 
 const ProperTeacherDashboard = () => {
   const { user } = useSelector((state) => state.auth)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [teacherData, setTeacherData] = useState({
-    assignedClasses: [],
-    todaySessions: [],
-    recentGrades: [],
-    statistics: {
-      totalClasses: 0,
-      activeStudents: 0,
-      attendanceRate: 0,
-      averageGrade: 0
-    }
-  })
+  const [excelUploadOpen, setExcelUploadOpen] = useState(false)
+  const [uploadType, setUploadType] = useState('students') // 'students', 'grades', 'attendance'
 
   const loadTeacherData = useCallback(async () => {
     try {
@@ -159,12 +148,40 @@ const ProperTeacherDashboard = () => {
     }
   }
 
-  const handleStopSession = async (sessionId) => {
-    try {
-      await attendanceService.updateSession(sessionId, { is_active: false })
-      loadTeacherData()
-    } catch (err) {
-      console.error('Error stopping session:', err)
+  const handleExcelUpload = (uploadType) => {
+    setUploadType(uploadType)
+    setExcelUploadOpen(true)
+  }
+
+  const handleUploadSuccess = (result) => {
+    console.log('Upload successful:', result)
+    // Refresh data after successful upload
+    loadTeacherData()
+  }
+
+  const getUploadEndpoint = () => {
+    switch (uploadType) {
+      case 'students':
+        return '/api/students/import-excel/'
+      case 'grades':
+        return '/api/grades/import-excel/'
+      case 'attendance':
+        return '/api/attendance/import-excel/'
+      default:
+        return '/api/students/import-excel/'
+    }
+  }
+
+  const getUploadTitle = () => {
+    switch (uploadType) {
+      case 'students':
+        return 'Import Danh Sách Sinh Viên'
+      case 'grades':
+        return 'Import Điểm Số'
+      case 'attendance':
+        return 'Import Điểm Danh'
+      default:
+        return 'Import File Excel'
     }
   }
 
@@ -443,6 +460,63 @@ const ProperTeacherDashboard = () => {
             </Grid>
           </CardContent>
         </Card>
+
+        {/* Excel Upload Actions */}
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6" fontWeight={600} gutterBottom>
+              Import Excel Files
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Upload file Excel để import dữ liệu hàng loạt
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<UploadIcon />}
+                  onClick={() => handleExcelUpload('students')}
+                  sx={{ py: 1.5 }}
+                >
+                  Import Sinh Viên
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<UploadIcon />}
+                  onClick={() => handleExcelUpload('grades')}
+                  sx={{ py: 1.5 }}
+                >
+                  Import Điểm Số
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<UploadIcon />}
+                  onClick={() => handleExcelUpload('attendance')}
+                  sx={{ py: 1.5 }}
+                >
+                  Import Điểm Danh
+                </Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+        {/* Excel Upload Dialog */}
+        <ExcelUpload
+          open={excelUploadOpen}
+          onClose={() => setExcelUploadOpen(false)}
+          onUploadSuccess={handleUploadSuccess}
+          uploadEndpoint={getUploadEndpoint()}
+          acceptedTypes={['.xlsx', '.xls']}
+          maxFileSize={5 * 1024 * 1024} // 5MB
+        />
       </Container>
     </>
   )

@@ -176,11 +176,7 @@ import {
 } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
-import { useSelector, useDispatch } from 'react-redux'
-import attendanceService from '../../services/attendanceService'
-import gradeService from '../../services/gradeService'
-import studentService from '../../services/studentService'
-import classService from '../../services/classService'
+import QRCodeScanner from '../../components/QRCode/QRCodeScanner'
 
 // Custom Hooks
 const useErrorHandler = () => {
@@ -581,26 +577,22 @@ const ProductionStudentDashboard = () => {
     setActiveTab(newValue)
   }
   
-  const handleQRCodeSubmit = async () => {
-    if (!qrCodeInput.trim()) {
-      showNotification('Please enter a QR code', 'warning')
-      return
-    }
-    
+  const handleQRCodeSubmit = async (qrData) => {
     try {
       setLoading('qrCheckIn', true)
+      
+      // Call API to check in with QR code
       const response = await attendanceService.checkInWithQR({
-        qr_code: qrCodeInput.trim(),
+        qr_code: qrData,
         student_id: user.student_id || user.id
       })
       
-      showNotification('Check-in successful!', 'success')
+      showNotification('Điểm danh thành công!', 'success')
       setQrDialogOpen(false)
-      setQrCodeInput('')
       loadAllData() // Refresh all data
     } catch (err) {
-      handleError(err)
-      showNotification('Check-in failed. Please try again.', 'error')
+      console.error('Check-in failed:', err)
+      showNotification('Điểm danh thất bại. Vui lòng thử lại.', 'error')
     } finally {
       setLoading('qrCheckIn', false)
     }
@@ -922,44 +914,15 @@ const ProductionStudentDashboard = () => {
         </Card>
         
         {/* QR Code Check-in Dialog */}
-        <Dialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>
-            <Box display="flex" alignItems="center" gap={1}>
-              <QrCodeIcon />
-              <Typography variant="h6">Check In with QR Code</Typography>
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            <Box py={2}>
-              <Typography variant="body1" gutterBottom>
-                Enter the QR code from your teacher to check in for attendance.
-              </Typography>
-              <TextField
-                fullWidth
-                label="QR Code"
-                value={qrCodeInput}
-                onChange={(e) => setQrCodeInput(e.target.value)}
-                placeholder="Scan or enter QR code"
-                sx={{ mt: 2 }}
-                InputProps={{
-                  startAdornment: <QrCodeIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setQrDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleQRCodeSubmit} 
-              variant="contained"
-              disabled={!qrCodeInput.trim() || isLoading('qrCheckIn')}
-            >
-              {isLoading('qrCheckIn') ? <CircularProgress size={20} /> : 'Check In'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <QRCodeScanner
+          open={qrDialogOpen}
+          onClose={() => setQrDialogOpen(false)}
+          onScanSuccess={handleQRCodeSubmit}
+          onScanError={(error) => {
+            console.error('QR Scan error:', error)
+            showNotification('Lỗi quét QR code: ' + error, 'error')
+          }}
+        />
         
         {/* Notification Snackbar */}
         <Snackbar
