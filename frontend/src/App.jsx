@@ -119,7 +119,7 @@ const App = () => {
           <Route path="/admin/dashboard" element={
             <ProtectedRoute requiredRole="admin">
               <Layout>
-                <AdminDashboard />
+                <Dashboard />
               </Layout>
             </ProtectedRoute>
           } />
@@ -127,7 +127,7 @@ const App = () => {
           <Route path="/teacher/dashboard" element={
             <ProtectedRoute requiredRole="teacher">
               <Layout>
-                <TeacherDashboard />
+                <Dashboard />
               </Layout>
             </ProtectedRoute>
           } />
@@ -135,7 +135,7 @@ const App = () => {
           <Route path="/student/dashboard" element={
             <ProtectedRoute requiredRole="student">
               <Layout>
-                <StudentDashboard />
+                <Dashboard />
               </Layout>
             </ProtectedRoute>
           } />
