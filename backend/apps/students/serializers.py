@@ -18,22 +18,32 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class StudentCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating students"""
+    """Serializer for creating and updating students"""
     
     class Meta:
         model = Student
         fields = [
             'student_id', 'first_name', 'last_name', 'email', 'phone',
-            'gender', 'date_of_birth', 'address', 'avatar'
+            'gender', 'date_of_birth', 'address', 'avatar', 'is_active'
         ]
     
     def validate_student_id(self, value):
-        if Student.objects.filter(student_id=value).exists():
+        # Check if student_id already exists (excluding current instance for updates)
+        queryset = Student.objects.filter(student_id=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        
+        if queryset.exists():
             raise serializers.ValidationError("Mã sinh viên đã tồn tại")
         return value
     
     def validate_email(self, value):
-        if Student.objects.filter(email=value).exists():
+        # Check if email already exists (excluding current instance for updates)
+        queryset = Student.objects.filter(email=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+            
+        if queryset.exists():
             raise serializers.ValidationError("Email đã tồn tại")
         return value
 

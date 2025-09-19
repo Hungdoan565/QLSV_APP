@@ -5,12 +5,12 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.http import HttpResponse, JsonResponse
 from django.db.models import Q
 from .models import Student
-from .serializers import StudentSerializer
+from .serializers import StudentSerializer, StudentCreateSerializer
 from .bulk_views import bulk_create_students
 
 
 class StudentListCreateView(generics.ListCreateAPIView):
-    """List and create students"""
+    """List and create students with pagination"""
     queryset = Student.objects.all()
     permission_classes = [permissions.IsAuthenticated]
     
@@ -29,7 +29,7 @@ class StudentListCreateView(generics.ListCreateAPIView):
                 Q(student_id__icontains=search) |
                 Q(email__icontains=search)
             )
-        return queryset
+        return queryset.order_by('-created_at')
 
 
 class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -37,6 +37,11 @@ class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return StudentCreateSerializer
+        return StudentSerializer
 
 
 @api_view(['POST'])
