@@ -303,3 +303,40 @@ def _score_to_gpa_points(score):
         return 1.0
     else:
         return 0.0
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def import_excel(request):
+    """Import grades from Excel file"""
+    try:
+        if 'file' not in request.FILES:
+            return Response({
+                'success': False,
+                'message': 'No file provided'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        excel_file = request.FILES['file']
+        
+        # Check file extension
+        if not excel_file.name.lower().endswith(('.xlsx', '.xls')):
+            return Response({
+                'success': False,
+                'message': 'Only Excel files (.xlsx, .xls) are supported'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # For now, return a simple success message
+        # TODO: Implement proper Excel parsing with openpyxl or xlrd
+        return Response({
+            'success': True,
+            'message': 'Excel import feature is under development. Please use CSV format for now.',
+            'created_count': 0,
+            'created_grades': [],
+            'errors': []
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

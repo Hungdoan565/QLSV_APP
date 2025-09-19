@@ -11,6 +11,7 @@ urlpatterns = [
     path('student/<str:student_id>/summary/', views.student_grade_summary, name='student_grade_summary'),
     path('class/<int:class_id>/summary/', views.class_grade_summary, name='class_grade_summary'),
     
-    # Export - Commented out until function is implemented
+    # Import/Export
+    path('import-excel/', views.import_excel, name='import_excel'),
     # path('export/', views.export_grades, name='export_grades'),
 ]

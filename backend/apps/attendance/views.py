@@ -273,3 +273,40 @@ def attendance_analytics(request, session_id):
         return Response({'error': 'Không tìm thấy buổi điểm danh'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def import_excel(request):
+    """Import attendance records from Excel file"""
+    try:
+        if 'file' not in request.FILES:
+            return Response({
+                'success': False,
+                'message': 'No file provided'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        excel_file = request.FILES['file']
+        
+        # Check file extension
+        if not excel_file.name.lower().endswith(('.xlsx', '.xls')):
+            return Response({
+                'success': False,
+                'message': 'Only Excel files (.xlsx, .xls) are supported'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # For now, return a simple success message
+        # TODO: Implement proper Excel parsing with openpyxl or xlrd
+        return Response({
+            'success': True,
+            'message': 'Excel import feature is under development. Please use CSV format for now.',
+            'created_count': 0,
+            'created_attendance': [],
+            'errors': []
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
