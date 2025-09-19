@@ -295,14 +295,114 @@ def import_excel(request):
                 'message': 'Only Excel files (.xlsx, .xls) are supported'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # For now, return a simple success message
-        # TODO: Implement proper Excel parsing with openpyxl or xlrd
+        # Parse Excel file with openpyxl
+        from openpyxl import load_workbook
+        import io
+        
+        # Load workbook from uploaded file
+        workbook = load_workbook(io.BytesIO(excel_file.read()))
+        worksheet = workbook.active
+        
+        # Get headers from first row
+        headers = []
+        for cell in worksheet[1]:
+            headers.append(cell.value.lower().replace(' ', '_') if cell.value else '')
+        
+        # Expected columns mapping
+        column_mapping = {
+            'student_id': ['student_id', 'mssv', 'id'],
+            'session_id': ['session_id', 'buoi_diem_danh', 'session'],
+            'status': ['status', 'trang_thai', 'attendance_status'],
+            'check_in_time': ['check_in_time', 'gio_vao', 'time_in'],
+            'check_out_time': ['check_out_time', 'gio_ra', 'time_out'],
+            'notes': ['notes', 'ghi_chu', 'note']
+        }
+        
+        # Map headers to expected fields
+        field_mapping = {}
+        for field, possible_names in column_mapping.items():
+            for header in headers:
+                if header in possible_names:
+                    field_mapping[field] = headers.index(header)
+                    break
+        
+        created_attendance = []
+        errors = []
+        
+        # Process each row
+        for row_num in range(2, worksheet.max_row + 1):
+            try:
+                row_data = {}
+                for field, col_index in field_mapping.items():
+                    cell_value = worksheet.cell(row=row_num, column=col_index + 1).value
+                    row_data[field] = str(cell_value).strip() if cell_value else ''
+                
+                # Set defaults for missing fields
+                if not row_data.get('status'):
+                    row_data['status'] = 'present'
+                if not row_data.get('check_in_time'):
+                    row_data['check_in_time'] = timezone.now().isoformat()
+                
+                # Validate required fields
+                if not row_data.get('student_id') or not row_data.get('session_id'):
+                    errors.append({
+                        'row': row_num,
+                        'error': 'Missing required fields: student_id and session_id',
+                        'data': row_data
+                    })
+                    continue
+                
+                # Convert session_id to int
+                try:
+                    row_data['session_id'] = int(row_data['session_id'])
+                except ValueError:
+                    errors.append({
+                        'row': row_num,
+                        'error': f'Invalid session_id format: {row_data["session_id"]}',
+                        'data': row_data
+                    })
+                    continue
+                
+                # Validate status
+                valid_statuses = ['present', 'absent', 'late', 'excused']
+                if row_data['status'] not in valid_statuses:
+                    errors.append({
+                        'row': row_num,
+                        'error': f'Invalid status: {row_data["status"]}. Must be one of: {valid_statuses}',
+                        'data': row_data
+                    })
+                    continue
+                
+                # Create attendance record
+                serializer = AttendanceSerializer(data=row_data)
+                if serializer.is_valid():
+                    attendance = serializer.save()
+                    created_attendance.append(AttendanceSerializer(attendance).data)
+                else:
+                    errors.append({
+                        'row': row_num,
+                        'errors': serializer.errors,
+                        'data': row_data
+                    })
+                    
+            except Exception as e:
+                errors.append({
+                    'row': row_num,
+                    'error': str(e),
+                    'data': f'Row {row_num} processing failed'
+                })
+        
         return Response({
             'success': True,
-            'message': 'Excel import feature is under development. Please use CSV format for now.',
-            'created_count': 0,
-            'created_attendance': [],
-            'errors': []
+            'message': f'Successfully imported {len(created_attendance)} attendance records from Excel file',
+            'created_count': len(created_attendance),
+            'created_attendance': created_attendance,
+            'errors': errors,
+            'details': {
+                'total_rows_processed': worksheet.max_row - 1,
+                'successful_imports': len(created_attendance),
+                'failed_imports': len(errors)
+            }
         })
         
     except Exception as e:

@@ -88,14 +88,104 @@ def import_excel(request):
                 'message': 'Only Excel files (.xlsx, .xls) are supported'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # For now, return a simple success message
-        # TODO: Implement proper Excel parsing with openpyxl or xlrd
+        # Parse Excel file with openpyxl
+        from openpyxl import load_workbook
+        import io
+        
+        # Load workbook from uploaded file
+        workbook = load_workbook(io.BytesIO(excel_file.read()))
+        worksheet = workbook.active
+        
+        # Get headers from first row
+        headers = []
+        for cell in worksheet[1]:
+            headers.append(cell.value.lower().replace(' ', '_') if cell.value else '')
+        
+        # Expected columns mapping
+        column_mapping = {
+            'student_id': ['student_id', 'mssv', 'id'],
+            'first_name': ['first_name', 'ten', 'ho_ten', 'name'],
+            'last_name': ['last_name', 'ho', 'surname'],
+            'email': ['email', 'mail'],
+            'phone': ['phone', 'sdt', 'telephone'],
+            'gender': ['gender', 'gioi_tinh', 'sex'],
+            'date_of_birth': ['date_of_birth', 'ngay_sinh', 'birthday'],
+            'address': ['address', 'dia_chi', 'location']
+        }
+        
+        # Map headers to expected fields
+        field_mapping = {}
+        for field, possible_names in column_mapping.items():
+            for header in headers:
+                if header in possible_names:
+                    field_mapping[field] = headers.index(header)
+                    break
+        
+        created_students = []
+        errors = []
+        
+        # Process each row
+        for row_num in range(2, worksheet.max_row + 1):
+            try:
+                row_data = {}
+                for field, col_index in field_mapping.items():
+                    cell_value = worksheet.cell(row=row_num, column=col_index + 1).value
+                    row_data[field] = str(cell_value).strip() if cell_value else ''
+                
+                # Set defaults for missing fields
+                if not row_data.get('gender'):
+                    row_data['gender'] = 'male'
+                if not row_data.get('date_of_birth'):
+                    row_data['date_of_birth'] = '2000-01-01'
+                
+                # Validate required fields
+                if not row_data.get('student_id') or not row_data.get('first_name'):
+                    errors.append({
+                        'row': row_num,
+                        'error': 'Missing required fields: student_id and first_name',
+                        'data': row_data
+                    })
+                    continue
+                
+                # Check if student already exists
+                if Student.objects.filter(student_id=row_data['student_id']).exists():
+                    errors.append({
+                        'row': row_num,
+                        'error': f'Student with ID {row_data["student_id"]} already exists',
+                        'data': row_data
+                    })
+                    continue
+                
+                # Create student
+                serializer = StudentCreateSerializer(data=row_data)
+                if serializer.is_valid():
+                    student = serializer.save()
+                    created_students.append(StudentSerializer(student).data)
+                else:
+                    errors.append({
+                        'row': row_num,
+                        'errors': serializer.errors,
+                        'data': row_data
+                    })
+                    
+            except Exception as e:
+                errors.append({
+                    'row': row_num,
+                    'error': str(e),
+                    'data': f'Row {row_num} processing failed'
+                })
+        
         return Response({
             'success': True,
-            'message': 'Excel import feature is under development. Please use CSV format for now.',
-            'created_count': 0,
-            'created_students': [],
-            'errors': []
+            'message': f'Successfully imported {len(created_students)} students from Excel file',
+            'created_count': len(created_students),
+            'created_students': created_students,
+            'errors': errors,
+            'details': {
+                'total_rows_processed': worksheet.max_row - 1,
+                'successful_imports': len(created_students),
+                'failed_imports': len(errors)
+            }
         })
         
     except Exception as e:

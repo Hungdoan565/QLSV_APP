@@ -325,14 +325,107 @@ def import_excel(request):
                 'message': 'Only Excel files (.xlsx, .xls) are supported'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # For now, return a simple success message
-        # TODO: Implement proper Excel parsing with openpyxl or xlrd
+        # Parse Excel file with openpyxl
+        from openpyxl import load_workbook
+        import io
+        
+        # Load workbook from uploaded file
+        workbook = load_workbook(io.BytesIO(excel_file.read()))
+        worksheet = workbook.active
+        
+        # Get headers from first row
+        headers = []
+        for cell in worksheet[1]:
+            headers.append(cell.value.lower().replace(' ', '_') if cell.value else '')
+        
+        # Expected columns mapping
+        column_mapping = {
+            'student_id': ['student_id', 'mssv', 'id'],
+            'class_id': ['class_id', 'lop', 'class'],
+            'subject': ['subject', 'mon_hoc', 'course'],
+            'score': ['score', 'diem', 'grade', 'mark'],
+            'exam_type': ['exam_type', 'loai_kiem_tra', 'type'],
+            'semester': ['semester', 'hoc_ky', 'term'],
+            'academic_year': ['academic_year', 'nam_hoc', 'year']
+        }
+        
+        # Map headers to expected fields
+        field_mapping = {}
+        for field, possible_names in column_mapping.items():
+            for header in headers:
+                if header in possible_names:
+                    field_mapping[field] = headers.index(header)
+                    break
+        
+        created_grades = []
+        errors = []
+        
+        # Process each row
+        for row_num in range(2, worksheet.max_row + 1):
+            try:
+                row_data = {}
+                for field, col_index in field_mapping.items():
+                    cell_value = worksheet.cell(row=row_num, column=col_index + 1).value
+                    row_data[field] = str(cell_value).strip() if cell_value else ''
+                
+                # Set defaults for missing fields
+                if not row_data.get('exam_type'):
+                    row_data['exam_type'] = 'midterm'
+                if not row_data.get('semester'):
+                    row_data['semester'] = '1'
+                if not row_data.get('academic_year'):
+                    row_data['academic_year'] = '2024-2025'
+                
+                # Validate required fields
+                if not row_data.get('student_id') or not row_data.get('score'):
+                    errors.append({
+                        'row': row_num,
+                        'error': 'Missing required fields: student_id and score',
+                        'data': row_data
+                    })
+                    continue
+                
+                # Convert score to float
+                try:
+                    row_data['score'] = float(row_data['score'])
+                except ValueError:
+                    errors.append({
+                        'row': row_num,
+                        'error': f'Invalid score format: {row_data["score"]}',
+                        'data': row_data
+                    })
+                    continue
+                
+                # Create grade
+                serializer = GradeCreateSerializer(data=row_data)
+                if serializer.is_valid():
+                    grade = serializer.save()
+                    created_grades.append(GradeSerializer(grade).data)
+                else:
+                    errors.append({
+                        'row': row_num,
+                        'errors': serializer.errors,
+                        'data': row_data
+                    })
+                    
+            except Exception as e:
+                errors.append({
+                    'row': row_num,
+                    'error': str(e),
+                    'data': f'Row {row_num} processing failed'
+                })
+        
         return Response({
             'success': True,
-            'message': 'Excel import feature is under development. Please use CSV format for now.',
-            'created_count': 0,
-            'created_grades': [],
-            'errors': []
+            'message': f'Successfully imported {len(created_grades)} grades from Excel file',
+            'created_count': len(created_grades),
+            'created_grades': created_grades,
+            'errors': errors,
+            'details': {
+                'total_rows_processed': worksheet.max_row - 1,
+                'successful_imports': len(created_grades),
+                'failed_imports': len(errors)
+            }
         })
         
     except Exception as e:

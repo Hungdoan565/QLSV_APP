@@ -80,7 +80,7 @@ const getNavigationItems = (userRole) => {
       roles: ['admin', 'teacher']
     },
     { 
-      text: 'Điểm danh', 
+      text: 'Quản lý điểm danh', 
       icon: <Assignment />, 
       path: '/attendance',
       roles: ['admin', 'teacher']
@@ -95,7 +95,7 @@ const getNavigationItems = (userRole) => {
       roles: ['teacher']
     },
     { 
-      text: 'Điểm danh', 
+      text: 'Điểm danh lớp', 
       icon: <Assignment />, 
       path: '/attendance',
       roles: ['teacher']
