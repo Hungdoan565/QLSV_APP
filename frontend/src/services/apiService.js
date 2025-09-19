@@ -5,8 +5,8 @@
 
 import axios from 'axios'
 
-// API Configuration
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+// API Configuration - Allow external access
+const API_BASE_URL = 'http://192.168.1.76:8000/api'
 const AUTH_ENDPOINTS = {
   LOGIN: '/auth/login/',
   REGISTER: '/auth/register/',
