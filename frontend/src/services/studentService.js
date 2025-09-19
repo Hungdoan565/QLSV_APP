@@ -1,11 +1,34 @@
 import apiService from './apiService'
 
 const studentService = {
+  // CRUD operations
   getStudents: (params) => apiService.axiosInstance.get('/students/', { params }),
   getStudent: (id) => apiService.axiosInstance.get(`/students/${id}/`),
-  createStudent: (studentData) => apiService.axiosInstance.post('/students/', studentData),
-  updateStudent: (id, studentData) => apiService.axiosInstance.put(`/students/${id}/`, studentData),
+  createStudent: (studentData) => {
+    // Handle FormData for file uploads
+    if (studentData instanceof FormData) {
+      return apiService.axiosInstance.post('/students/', studentData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    }
+    return apiService.axiosInstance.post('/students/', studentData)
+  },
+  updateStudent: (id, studentData) => {
+    // Handle FormData for file uploads
+    if (studentData instanceof FormData) {
+      return apiService.axiosInstance.put(`/students/${id}/`, studentData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    }
+    return apiService.axiosInstance.put(`/students/${id}/`, studentData)
+  },
   deleteStudent: (id) => apiService.axiosInstance.delete(`/students/${id}/`),
+  
+  // Import/Export operations
   importStudents: (file) => {
     const formData = new FormData()
     formData.append('file', file)
@@ -19,7 +42,23 @@ const studentService = {
     params,
     responseType: 'blob'
   }),
+  
+  // Bulk operations
+  bulkCreateStudents: (studentsData) => apiService.axiosInstance.post('/students/bulk-create/', {
+    students: studentsData
+  }),
+  
+  // Statistics and analytics
   getStudentStatistics: () => apiService.axiosInstance.get('/students/statistics/'),
+  
+  // Search and filtering
+  searchStudents: (searchTerm, filters = {}) => {
+    const params = {
+      search: searchTerm,
+      ...filters
+    }
+    return apiService.axiosInstance.get('/students/', { params })
+  },
 }
 
 export default studentService

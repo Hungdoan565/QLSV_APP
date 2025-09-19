@@ -33,6 +33,7 @@ import {
   Error as ErrorIcon,
   Description as FileIcon,
 } from '@mui/icons-material'
+import studentService from '../../services/studentService'
 
 const ExcelDragDrop = ({ 
   open, 
@@ -93,22 +94,13 @@ const ExcelDragDrop = ({
       setImporting(true)
       setUploadProgress(10)
       
-      const formData = new FormData()
-      formData.append('file', file)
-      
       setUploadProgress(30)
       
-      const response = await fetch('/api/students/import-excel/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        },
-        body: formData
-      })
+      const response = await studentService.importStudents(file)
       
       setUploadProgress(70)
       
-      const result = await response.json()
+      const result = response.data
       
       setUploadProgress(100)
       
@@ -133,9 +125,10 @@ const ExcelDragDrop = ({
         }
       }
     } catch (error) {
+      console.error('Excel import error:', error)
       setErrors([{
         row: 0,
-        error: 'Lỗi kết nối: ' + error.message,
+        error: error.response?.data?.message || 'Lỗi kết nối: ' + error.message,
         data: file.name
       }])
     } finally {
@@ -149,33 +142,18 @@ const ExcelDragDrop = ({
 
     setImporting(true)
     try {
-      const response = await fetch('/api/students/bulk-create/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify({
-          students: parsedData
-        })
+      // Since the data is already imported during parseExcelFile, 
+      // we just need to notify success
+      onImportSuccess?.({
+        success: true,
+        created_count: parsedData.length,
+        created_students: parsedData
       })
-
-      const result = await response.json()
-      
-      if (result.success) {
-        onImportSuccess?.(result)
-        handleClose()
-      } else {
-        setErrors([{
-          row: 0,
-          error: result.error || 'Lỗi import dữ liệu',
-          data: ''
-        }])
-      }
+      handleClose()
     } catch (error) {
       setErrors([{
         row: 0,
-        error: 'Lỗi kết nối: ' + error.message,
+        error: error.response?.data?.message || 'Lỗi kết nối: ' + error.message,
         data: ''
       }])
     } finally {

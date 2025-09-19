@@ -5,8 +5,8 @@
 
 import axios from 'axios'
 
-// API Configuration - Allow external access
-const API_BASE_URL = 'http://192.168.1.76:8000/api'
+// API Configuration - Use localhost for development
+const API_BASE_URL = 'http://localhost:8000/api'
 const AUTH_ENDPOINTS = {
   LOGIN: '/auth/login/',
   REGISTER: '/auth/register/',

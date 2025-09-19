@@ -19,7 +19,7 @@ import {
 } from '@mui/icons-material'
 import { Link } from 'react-router-dom'
 import { useTheme, useMediaQuery } from '@mui/material'
-import QRCodeScanner from '../QRCode/QRCodeScanner'
+import InteractiveQRDemo from '../QRCode/InteractiveQRDemo'
 
 const HeroSection = () => {
   const theme = useTheme()
@@ -198,8 +198,8 @@ const HeroSection = () => {
               height: '100%',
               minHeight: { xs: 300, md: 400 }
             }}>
-              {/* Compact QR Code Scanner Demo */}
-              <QRCodeScanner />
+              {/* Interactive QR Code Demo */}
+              <InteractiveQRDemo />
             </Box>
           </Grid>
         </Grid>
