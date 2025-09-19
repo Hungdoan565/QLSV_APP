@@ -75,7 +75,7 @@ class ErrorBoundary extends React.Component {
                   fontFamily: 'monospace'
                 }}>
                   {this.state.error && this.state.error.toString()}
-                  {this.state.errorInfo.componentStack}
+                  {this.state.errorInfo?.componentStack || 'No component stack available'}
                 </Typography>
               </Alert>
             )}

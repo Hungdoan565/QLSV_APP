@@ -20,6 +20,13 @@ import {
   TableHead,
   TableRow,
   Paper,
+  CircularProgress,
+  Alert,
+  LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material'
 import {
   QrCodeScanner,
@@ -33,11 +40,16 @@ import {
   FileDownload,
   Notifications,
   Warning,
+  Refresh,
+  Close,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { Helmet } from 'react-helmet-async'
 import { useNotification } from '../../components/Notification/NotificationProvider'
+import classService from '../../services/classService'
+import attendanceService from '../../services/attendanceService'
+import gradeService from '../../services/gradeService'
 
 // Quick Action Card Component
 const QuickActionCard = ({ icon, title, subtitle, onClick, color = 'primary' }) => (
@@ -160,21 +172,24 @@ const ClassSessionCard = ({ session, onViewAttendance, onGenerateQR }) => (
           </Box>
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
-              {session.subject}
+              {session.session_name || session.class_obj?.class_name || 'Buổi học'}
             </Typography>
             <Stack direction="row" spacing={2} alignItems="center">
               <Typography variant="body2" color="text.secondary">
-                {session.time}
+                {session.start_time} - {session.end_time}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Phòng {session.room}
+                {session.location || 'Phòng học'}
               </Typography>
             </Stack>
+            <Typography variant="caption" color="text.secondary">
+              Lớp: {session.class_obj?.class_id || 'N/A'} • {session.class_obj?.current_students_count || 0} sinh viên
+            </Typography>
           </Box>
           <Box sx={{ textAlign: 'right' }}>
             <Chip
-              label={session.status === 'completed' ? 'Hoàn thành' : 'Sắp diễn ra'}
-              color={session.status === 'completed' ? 'success' : 'default'}
+              label={session.is_active ? 'Đang hoạt động' : 'Đã kết thúc'}
+              color={session.is_active ? 'success' : 'default'}
               size="small"
               sx={{ mb: 1 }}
             />
@@ -199,49 +214,73 @@ const TeacherDashboard = () => {
   const { user } = useSelector((state) => state.auth)
   const { showSuccess, showError } = useNotification()
 
-  // Mock data - replace with real API calls
+  // State management
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [qrDialogOpen, setQrDialogOpen] = useState(false)
+  const [selectedSession, setSelectedSession] = useState(null)
+  const [qrCodeData, setQrCodeData] = useState(null)
+
   const [teacherStats, setTeacherStats] = useState({
-    totalClasses: 6,
-    totalStudents: 180,
-    todayClasses: 3,
-    attendanceRate: 87.2
+    totalClasses: 0,
+    totalStudents: 0,
+    todayClasses: 0,
+    attendanceRate: 0
   })
 
-  const [todaysSessions, setTodaysSessions] = useState([
-    { 
-      id: 1, 
-      subject: 'Lập trình Web', 
-      time: '08:00 - 09:30', 
-      room: 'A101', 
-      students: 32, 
-      attended: 28,
-      status: 'completed'
-    },
-    { 
-      id: 2, 
-      subject: 'Cơ sở dữ liệu', 
-      time: '10:00 - 11:30', 
-      room: 'B203', 
-      students: 35, 
-      attended: 32,
-      status: 'completed'
-    },
-    { 
-      id: 3, 
-      subject: 'Phân tích thiết kế hệ thống', 
-      time: '13:30 - 15:00', 
-      room: 'C305', 
-      students: 30, 
-      attended: null,
-      status: 'upcoming'
-    },
-  ])
+  const [todaysSessions, setTodaysSessions] = useState([])
+  const [lowAttendanceStudents, setLowAttendanceStudents] = useState([])
 
-  const [lowAttendanceStudents, setLowAttendanceStudents] = useState([
-    { id: 1, name: 'Nguyễn Văn A', class: 'Lập trình Web', rate: 65, sessions: '13/20' },
-    { id: 2, name: 'Trần Thị B', class: 'Cơ sở dữ liệu', rate: 70, sessions: '14/20' },
-    { id: 3, name: 'Lê Văn C', class: 'PTTKHT', rate: 72, sessions: '18/25' },
-  ])
+  // Load teacher data
+  const loadTeacherData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Load teacher's classes and statistics
+      const [classStats, classes] = await Promise.all([
+        classService.getClassStatistics(),
+        classService.getClasses()
+      ])
+
+      // Calculate teacher-specific stats
+      const teacherClasses = classes.data.filter(cls => cls.teacher?.id === user?.id)
+      const totalStudents = teacherClasses.reduce((sum, cls) => sum + (cls.current_students_count || 0), 0)
+      
+      // Get today's sessions (mock for now - would need real schedule API)
+      const today = new Date().toISOString().split('T')[0]
+      const todaySessions = await attendanceService.getSessions({ 
+        session_date: today,
+        class_obj__teacher: user?.id 
+      })
+
+      setTeacherStats({
+        totalClasses: teacherClasses.length,
+        totalStudents: totalStudents,
+        todayClasses: todaySessions.data?.length || 0,
+        attendanceRate: classStats.data?.avg_students_per_class || 0
+      })
+
+      setTodaysSessions(todaySessions.data || [])
+      
+      showSuccess('Dữ liệu giảng dạy đã được cập nhật')
+    } catch (err) {
+      console.error('Error loading teacher data:', err)
+      setError('Không thể tải dữ liệu giảng dạy')
+      showError('Lỗi khi tải dữ liệu')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load data on component mount
+  useEffect(() => {
+    loadTeacherData()
+  }, [user])
+
+  const handleRefresh = () => {
+    loadTeacherData()
+  }
 
   const handleCreateAttendanceSession = () => {
     showSuccess('Tạo phiên điểm danh mới')
@@ -258,19 +297,51 @@ const TeacherDashboard = () => {
     // Navigate to student management page
   }
 
-  const handleGenerateQR = (session) => {
-    showSuccess(`Tạo QR code cho ${session.subject}`)
-    // Generate QR code for the session
+  const handleGenerateQR = async (session) => {
+    try {
+      setSelectedSession(session)
+      setQrDialogOpen(true)
+      
+      // Generate QR code for the session
+      const response = await attendanceService.generateQRCode(session.id)
+      setQrCodeData(response.data)
+      
+      showSuccess(`QR code đã được tạo cho ${session.session_name}`)
+    } catch (err) {
+      console.error('Error generating QR code:', err)
+      showError('Không thể tạo QR code')
+    }
   }
 
-  const handleViewAttendance = (session) => {
-    showSuccess(`Xem điểm danh ${session.subject}`)
-    // View attendance details
+  const handleViewAttendance = async (session) => {
+    try {
+      // Get attendance analytics for the session
+      const analytics = await attendanceService.getAttendanceAnalytics(session.id)
+      showSuccess(`Xem điểm danh ${session.session_name}`)
+      // Show analytics in modal or navigate to detailed view
+    } catch (err) {
+      console.error('Error loading attendance analytics:', err)
+      showError('Không thể tải thông tin điểm danh')
+    }
   }
 
   const handleExportReport = () => {
     showSuccess('Xuất báo cáo thành công')
     // Export attendance report
+  }
+
+  const closeQrDialog = () => {
+    setQrDialogOpen(false)
+    setSelectedSession(null)
+    setQrCodeData(null)
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+        <CircularProgress size={60} />
+      </Box>
+    )
   }
 
   return (
@@ -315,7 +386,7 @@ const TeacherDashboard = () => {
                 <Typography variant="h6" sx={{ opacity: 0.9, mb: 2 }}>
                   Khoa: {user?.department || 'Công nghệ Thông tin'} • {teacherStats.totalClasses} lớp học
                 </Typography>
-                <Stack direction="row" spacing={2} flexWrap="wrap">
+                <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
                   <Chip
                     icon={<Schedule />}
                     label={`${teacherStats.todayClasses} lớp hôm nay`}
@@ -326,11 +397,25 @@ const TeacherDashboard = () => {
                     label={`${teacherStats.attendanceRate}% tỷ lệ tham dự`}
                     sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
                   />
+                  <IconButton
+                    onClick={handleRefresh}
+                    sx={{ color: 'white', ml: 1 }}
+                    disabled={loading}
+                  >
+                    <Refresh />
+                  </IconButton>
                 </Stack>
               </Box>
             </Stack>
           </Card>
         </motion.div>
+
+        {/* Error Display */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
         {/* Quick Actions */}
         <motion.div
@@ -517,6 +602,70 @@ const TeacherDashboard = () => {
           </Grid>
         </Grid>
       </Box>
+
+      {/* QR Code Dialog */}
+      <Dialog 
+        open={qrDialogOpen} 
+        onClose={closeQrDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6">QR Code điểm danh</Typography>
+            <IconButton onClick={closeQrDialog}>
+              <Close />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          {qrCodeData && (
+            <Stack spacing={3} alignItems="center">
+              <Typography variant="h6" textAlign="center">
+                {selectedSession?.session_name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" textAlign="center">
+                Lớp: {selectedSession?.class_obj?.class_name} • {selectedSession?.start_time} - {selectedSession?.end_time}
+              </Typography>
+              
+              <Box sx={{ p: 2, border: '2px dashed', borderColor: 'divider', borderRadius: 2 }}>
+                <img 
+                  src={qrCodeData.qr_image} 
+                  alt="QR Code" 
+                  style={{ 
+                    width: '200px', 
+                    height: '200px',
+                    display: 'block'
+                  }} 
+                />
+              </Box>
+              
+              <Typography variant="body2" color="text.secondary" textAlign="center">
+                Sinh viên quét QR code này để điểm danh
+              </Typography>
+              
+              <Typography variant="caption" color="text.secondary" textAlign="center">
+                QR Code: {qrCodeData.qr_code}
+              </Typography>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeQrDialog} variant="outlined">
+            Đóng
+          </Button>
+          <Button 
+            onClick={() => {
+              // Copy QR code to clipboard
+              navigator.clipboard.writeText(qrCodeData?.qr_code || '')
+              showSuccess('QR Code đã được copy')
+            }} 
+            variant="contained"
+          >
+            Copy QR Code
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

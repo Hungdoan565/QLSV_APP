@@ -11,6 +11,6 @@ urlpatterns = [
     path('student/<str:student_id>/summary/', views.student_grade_summary, name='student_grade_summary'),
     path('class/<int:class_id>/summary/', views.class_grade_summary, name='class_grade_summary'),
     
-    # Export
-    path('export/', views.export_grades, name='export_grades'),
+    # Export - Commented out until function is implemented
+    # path('export/', views.export_grades, name='export_grades'),
 ]

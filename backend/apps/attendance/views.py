@@ -52,7 +52,7 @@ class AttendanceSessionListCreateView(generics.ListCreateAPIView):
         if class_id is not None:
             queryset = queryset.filter(class_instance_id=class_id)
             
-        return queryset.order_by('-date', '-start_time')
+        return queryset.order_by('-session_date', '-start_time')
 
 
 class AttendanceSessionDetailView(generics.RetrieveUpdateDestroyAPIView):

@@ -14,6 +14,13 @@ import {
   useTheme,
   useMediaQuery,
   alpha,
+  CircularProgress,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material'
 import {
   QrCodeScanner,
@@ -26,11 +33,17 @@ import {
   Person,
   AccessTime,
   Notifications,
+  Refresh,
+  Close,
+  CameraAlt,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { Helmet } from 'react-helmet-async'
 import { useNotification } from '../../components/Notification/NotificationProvider'
+import attendanceService from '../../services/attendanceService'
+import gradeService from '../../services/gradeService'
+import studentService from '../../services/studentService'
 
 // Quick Action Card Component
 const QuickActionCard = ({ icon, title, subtitle, onClick, color = 'primary' }) => (
@@ -190,50 +203,121 @@ const StudentDashboard = () => {
   const { user } = useSelector((state) => state.auth)
   const { showSuccess, showError } = useNotification()
 
-  // Mock data - replace with real API calls
+  // State management
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [qrDialogOpen, setQrDialogOpen] = useState(false)
+  const [qrCodeInput, setQrCodeInput] = useState('')
+
   const [attendanceStats, setAttendanceStats] = useState({
-    totalClasses: 48,
-    attended: 42,
-    percentage: 87.5,
-    thisWeek: 5,
-    missed: 6
+    totalClasses: 0,
+    attended: 0,
+    percentage: 0,
+    thisWeek: 0,
+    missed: 0
   })
 
-  const [todaysClasses, setTodaysClasses] = useState([
-    { 
-      id: 1, 
-      subject: 'Lập trình Web', 
-      time: '08:00 - 09:30', 
-      teacher: 'TS. Nguyễn Văn A',
-      status: 'present'
-    },
-    { 
-      id: 2, 
-      subject: 'Cơ sở dữ liệu', 
-      time: '10:00 - 11:30', 
-      teacher: 'ThS. Trần Thị B',
-      status: 'present'
-    },
-    { 
-      id: 3, 
-      subject: 'Toán rời rạc', 
-      time: '14:00 - 15:30', 
-      teacher: 'PGS. Lê Văn C',
-      status: 'absent'
-    },
-  ])
+  const [todaysClasses, setTodaysClasses] = useState([])
+  const [recentGrades, setRecentGrades] = useState([])
+
+  // Load student data
+  const loadStudentData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Get student profile
+      const studentProfile = await studentService.getStudents({ 
+        email: user?.email 
+      })
+      
+      if (studentProfile.data.length === 0) {
+        throw new Error('Không tìm thấy thông tin sinh viên')
+      }
+
+      const student = studentProfile.data[0]
+
+      // Get attendance statistics
+      const attendanceData = await attendanceService.getAttendances({
+        student: student.id
+      })
+
+      // Get recent grades
+      const gradesData = await gradeService.getGrades({
+        student: student.id
+      })
+
+      // Calculate attendance stats
+      const totalSessions = attendanceData.data.length
+      const attendedSessions = attendanceData.data.filter(att => att.status === 'present').length
+      const attendancePercentage = totalSessions > 0 ? (attendedSessions / totalSessions) * 100 : 0
+
+      setAttendanceStats({
+        totalClasses: totalSessions,
+        attended: attendedSessions,
+        percentage: Math.round(attendancePercentage * 10) / 10,
+        thisWeek: 0, // Would need date filtering
+        missed: totalSessions - attendedSessions
+      })
+
+      setRecentGrades(gradesData.data.slice(0, 5))
+      
+      showSuccess('Dữ liệu sinh viên đã được cập nhật')
+    } catch (err) {
+      console.error('Error loading student data:', err)
+      setError('Không thể tải dữ liệu sinh viên')
+      showError('Lỗi khi tải dữ liệu')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load data on component mount
+  useEffect(() => {
+    loadStudentData()
+  }, [user])
+
+  const handleRefresh = () => {
+    loadStudentData()
+  }
 
   const handleAttendanceCheckIn = () => {
-    // Simplified attendance check-in (no camera)
-    const classCode = prompt('Nhập mã lớp học:')
-    if (classCode) {
+    setQrDialogOpen(true)
+  }
+
+  const handleQRCodeSubmit = async () => {
+    try {
+      if (!qrCodeInput.trim()) {
+        showError('Vui lòng nhập QR code')
+        return
+      }
+
+      // Get student ID from user profile
+      const studentProfile = await studentService.getStudents({ 
+        email: user?.email 
+      })
+      
+      if (studentProfile.data.length === 0) {
+        throw new Error('Không tìm thấy thông tin sinh viên')
+      }
+
+      const student = studentProfile.data[0]
+
+      // Submit QR code for attendance
+      const response = await attendanceService.checkInWithQR({
+        qr_code: qrCodeInput.trim(),
+        student_id: student.student_id
+      })
+
       showSuccess('Điểm danh thành công!')
-      // Update local state
-      setAttendanceStats(prev => ({
-        ...prev,
-        attended: prev.attended + 1,
-        percentage: Math.round(((prev.attended + 1) / prev.totalClasses) * 100 * 10) / 10
-      }))
+      setQrDialogOpen(false)
+      setQrCodeInput('')
+      
+      // Refresh data
+      loadStudentData()
+    } catch (err) {
+      console.error('Error checking in:', err)
+      showError(err.response?.data?.error || 'Không thể điểm danh')
     }
   }
 
@@ -245,6 +329,19 @@ const StudentDashboard = () => {
   const handleCheckGrades = () => {
     showSuccess('Chuyển đến điểm số')
     // Navigate to grades page
+  }
+
+  const closeQrDialog = () => {
+    setQrDialogOpen(false)
+    setQrCodeInput('')
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+        <CircularProgress size={60} />
+      </Box>
+    )
   }
 
   return (
@@ -289,10 +386,10 @@ const StudentDashboard = () => {
                 <Typography variant="h6" sx={{ opacity: 0.9, mb: 2 }}>
                   Mã sinh viên: {user?.studentId || 'SV001'} • Khoa: {user?.department || 'Công nghệ Thông tin'}
                 </Typography>
-                <Stack direction="row" spacing={2} flexWrap="wrap">
+                <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
                   <Chip
                     icon={<Schedule />}
-                    label="3 lớp hôm nay"
+                    label={`${attendanceStats.thisWeek} lớp tuần này`}
                     sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
                   />
                   <Chip
@@ -300,11 +397,25 @@ const StudentDashboard = () => {
                     label={`${attendanceStats.percentage}% tham dự`}
                     sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
                   />
+                  <IconButton
+                    onClick={handleRefresh}
+                    sx={{ color: 'white', ml: 1 }}
+                    disabled={loading}
+                  >
+                    <Refresh />
+                  </IconButton>
                 </Stack>
               </Box>
             </Stack>
           </Card>
         </motion.div>
+
+        {/* Error Display */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
         {/* Quick Actions */}
         <motion.div
@@ -465,6 +576,58 @@ const StudentDashboard = () => {
           </Grid>
         </Grid>
       </Box>
+
+      {/* QR Code Dialog */}
+      <Dialog 
+        open={qrDialogOpen} 
+        onClose={closeQrDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6">Điểm danh bằng QR Code</Typography>
+            <IconButton onClick={closeQrDialog}>
+              <Close />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            <Typography variant="body1" textAlign="center">
+              Nhập mã QR code từ giáo viên để điểm danh
+            </Typography>
+            
+            <TextField
+              fullWidth
+              label="Mã QR Code"
+              value={qrCodeInput}
+              onChange={(e) => setQrCodeInput(e.target.value)}
+              placeholder="Nhập mã QR code..."
+              variant="outlined"
+            />
+            
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary">
+                Hoặc sử dụng camera để quét QR code
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeQrDialog} variant="outlined">
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleQRCodeSubmit} 
+            variant="contained"
+            startIcon={<CameraAlt />}
+            disabled={!qrCodeInput.trim()}
+          >
+            Điểm danh
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

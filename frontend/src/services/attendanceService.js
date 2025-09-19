@@ -7,9 +7,11 @@ const attendanceService = {
   createSession: (sessionData) => api.post('/attendance/sessions/', sessionData),
   updateSession: (id, sessionData) => api.put(`/attendance/sessions/${id}/`, sessionData),
   deleteSession: (id) => api.delete(`/attendance/sessions/${id}/`),
-  generateQRCode: (sessionId) => api.get(`/attendance/sessions/${sessionId}/qr-code/`, {
-    responseType: 'blob'
-  }),
+  
+  // QR Code functionality
+  generateQRCode: (sessionId) => api.post(`/attendance/sessions/${sessionId}/generate-qr/`),
+  checkInWithQR: (qrData) => api.post('/attendance/check-in-qr/', qrData),
+  getAttendanceAnalytics: (sessionId) => api.get(`/attendance/sessions/${sessionId}/analytics/`),
   
   // Attendance records
   getAttendances: (params) => api.get('/attendance/', { params }),
@@ -17,14 +19,12 @@ const attendanceService = {
   createAttendance: (attendanceData) => api.post('/attendance/', attendanceData),
   updateAttendance: (id, attendanceData) => api.put(`/attendance/${id}/`, attendanceData),
   deleteAttendance: (id) => api.delete(`/attendance/${id}/`),
-  bulkCreateAttendance: (attendanceData) => api.post('/attendance/bulk-create/', attendanceData),
-  checkInWithQR: (qrData) => api.post('/attendance/check-in-qr/', qrData),
   
-  // Attendance summaries
-  getAttendanceSummary: (classId) => api.get(`/attendance/summary/${classId}/`),
-  calculateAttendanceSummary: (classId) => api.post(`/attendance/calculate/${classId}/`),
-  exportAttendance: (classId) => api.get(`/attendance/export/${classId}/`, {
-    responseType: 'blob'
+  // Statistics and export
+  getAttendanceStatistics: () => api.get('/attendance/statistics/'),
+  exportAttendance: (params) => api.get('/attendance/export/', { 
+    params,
+    responseType: 'blob' 
   }),
 }
 

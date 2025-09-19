@@ -17,5 +17,5 @@ urlpatterns = [
     
     # Statistics and export
     path('statistics/', views.attendance_statistics, name='attendance_statistics'),
-    path('export/', views.export_attendance, name='export_attendance'),
+    # path('export/', views.export_attendance, name='export_attendance'),  # Commented out until function is implemented
 ]
