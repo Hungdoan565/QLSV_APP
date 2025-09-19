@@ -41,6 +41,7 @@ import {
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
+import SessionManagement from '../../components/SessionManagement/SessionManagement'
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload'
 
 const ProperTeacherDashboard = () => {
@@ -49,6 +50,7 @@ const ProperTeacherDashboard = () => {
   const [error, setError] = useState(null)
   const [excelUploadOpen, setExcelUploadOpen] = useState(false)
   const [uploadType, setUploadType] = useState('students') // 'students', 'grades', 'attendance'
+  const [sessionManagementOpen, setSessionManagementOpen] = useState(false)
 
   const loadTeacherData = useCallback(async () => {
     try {
@@ -172,17 +174,14 @@ const ProperTeacherDashboard = () => {
     }
   }
 
-  const getUploadTitle = () => {
-    switch (uploadType) {
-      case 'students':
-        return 'Import Danh Sách Sinh Viên'
-      case 'grades':
-        return 'Import Điểm Số'
-      case 'attendance':
-        return 'Import Điểm Danh'
-      default:
-        return 'Import File Excel'
-    }
+  const handleSessionCreated = () => {
+    console.log('Session created successfully')
+    loadTeacherData() // Refresh teacher data
+  }
+
+  const handleSessionUpdated = () => {
+    console.log('Session updated successfully')
+    loadTeacherData() // Refresh teacher data
   }
 
   const StatCard = ({ title, value, icon, color, subtitle }) => (
@@ -422,6 +421,7 @@ const ProperTeacherDashboard = () => {
                   variant="contained"
                   fullWidth
                   startIcon={<AddIcon />}
+                  onClick={() => setSessionManagementOpen(true)}
                   sx={{ py: 1.5 }}
                 >
                   Create Session
@@ -508,6 +508,14 @@ const ProperTeacherDashboard = () => {
             </Grid>
           </CardContent>
         </Card>
+        {/* Session Management Dialog */}
+        <SessionManagement
+          open={sessionManagementOpen}
+          onClose={() => setSessionManagementOpen(false)}
+          onSessionCreated={handleSessionCreated}
+          onSessionUpdated={handleSessionUpdated}
+        />
+
         {/* Excel Upload Dialog */}
         <ExcelUpload
           open={excelUploadOpen}
