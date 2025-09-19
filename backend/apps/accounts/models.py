@@ -66,7 +66,7 @@ class User(AbstractUser):
     
     # Contact info
     phone_validator = RegexValidator(
-        regex=r'^(\+84|84|0)?[3|5|7|8|9][0-9]{8}$',
+        regex=r'^(\+84|84|0)?[0-9]{9,10}$',
         message="Số điện thoại không hợp lệ. Vd: 0123456789"
     )
     phone = models.CharField(

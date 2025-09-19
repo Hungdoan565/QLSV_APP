@@ -48,6 +48,7 @@ const Register = () => {
     role: 'student',
     department: '',
     studentId: '',
+    teacherId: '',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -98,11 +99,6 @@ const Register = () => {
       newErrors.fullName = 'Họ và tên phải có ít nhất 2 ký tự';
     }
 
-    // Email validation
-    const emailValidation = AuthUtils.validateEmail(formData.email);
-    if (!emailValidation.isValid) {
-      newErrors.email = emailValidation.error;
-    }
 
     // Phone validation
     const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
@@ -125,11 +121,24 @@ const Register = () => {
       newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
     }
 
+    // Email validation (must be .edu domain)
+    const emailValidation = AuthUtils.validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      newErrors.email = emailValidation.error;
+    }
+
     // Role-specific validation
     if (formData.role === 'student') {
       const studentIdValidation = AuthUtils.validateStudentId(formData.studentId);
       if (!studentIdValidation.isValid) {
         newErrors.studentId = studentIdValidation.error;
+      }
+    }
+
+    if (formData.role === 'teacher') {
+      const teacherIdValidation = AuthUtils.validateTeacherId(formData.teacherId);
+      if (!teacherIdValidation.isValid) {
+        newErrors.teacherId = teacherIdValidation.error;
       }
     }
 
@@ -159,6 +168,7 @@ const Register = () => {
       const registrationData = {
         email: formData.email,
         password: formData.password,
+        password_confirm: formData.confirmPassword,
         first_name: firstName,
         last_name: lastName,
         phone: formData.phone,
@@ -170,18 +180,29 @@ const Register = () => {
         registrationData.student_id = formData.studentId;
       }
 
+      if (formData.role === 'teacher') {
+        registrationData.teacher_id = formData.teacherId;
+      }
+
       if (formData.role === 'student' || formData.role === 'teacher') {
         registrationData.department = formData.department;
       }
 
       const result = await dispatch(register(registrationData)).unwrap();
       
-      setMessage('Đăng ký thành công! Vui lòng đợi admin phê duyệt.');
-      
-      // Redirect to pending approval page
-      setTimeout(() => {
-        navigate('/pending-approval');
-      }, 2000);
+      if (result.requireApproval) {
+        setMessage('Đăng ký thành công! Vui lòng đợi admin phê duyệt.');
+        // Redirect to pending approval page
+        setTimeout(() => {
+          navigate('/pending-approval');
+        }, 2000);
+      } else {
+        setMessage('Đăng ký thành công! Bạn có thể đăng nhập ngay.');
+        // Redirect to login page
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
     } catch (error) {
       setMessage(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
@@ -447,7 +468,36 @@ const Register = () => {
                       disabled={loading}
                       error={!!errors.studentId}
                       helperText={errors.studentId}
-                      placeholder="6 chữ số ( VD: 220211 )"
+                      placeholder="6 chữ số (VD: 226514)"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: '#6366f1',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#6366f1',
+                          },
+                        },
+                      }}
+                    />
+                  </Grid>
+                )}
+
+                {/* Mã giảng viên (chỉ hiển thị cho giảng viên) */}
+                {formData.role === 'teacher' && (
+                  <Grid item xs={12}>
+                    <TextField
+                      required
+                      fullWidth
+                      id="teacherId"
+                      name="teacherId"
+                      label="Mã giảng viên"
+                      value={formData.teacherId}
+                      onChange={handleChange}
+                      disabled={loading}
+                      error={!!errors.teacherId}
+                      helperText={errors.teacherId}
+                      placeholder="GV + 4 số (VD: GV0921)"
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           '&:hover fieldset': {

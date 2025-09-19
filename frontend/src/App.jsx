@@ -44,10 +44,12 @@ const App = () => {
   // Initialize user profile on app load
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
+    console.log('🔍 Debug - Token:', !!token, 'User:', !!user, 'IsAuth:', isAuthenticated)
     if (token && !user) {
+      console.log('📤 Dispatching getProfile...')
       dispatch(getProfile())
     }
-  }, [dispatch, user])
+  }, [dispatch, user]) // Removed isAuthenticated to prevent infinite loop
 
   // Loading state
   if (isLoading) {

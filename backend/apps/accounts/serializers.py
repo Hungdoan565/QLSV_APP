@@ -39,7 +39,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'email', 'first_name', 'last_name', 'password', 'password_confirm',
-            'role', 'phone', 'student_id', 'department'
+            'role', 'phone', 'student_id', 'teacher_id', 'department'
         ]
     
     def validate_email(self, value):
@@ -53,6 +53,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Mã sinh viên này đã tồn tại.")
         return value
     
+    def validate_teacher_id(self, value):
+        if value and User.objects.filter(teacher_id=value).exists():
+            raise serializers.ValidationError("Mã giảng viên này đã tồn tại.")
+        return value
+    
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError({
@@ -61,11 +66,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         
         role = attrs.get('role')
         student_id = attrs.get('student_id')
+        teacher_id = attrs.get('teacher_id')
         department = attrs.get('department')
         
         if role == User.Role.STUDENT and not student_id:
             raise serializers.ValidationError({
                 'student_id': "Mã sinh viên là bắt buộc."
+            })
+        
+        if role == User.Role.TEACHER and not teacher_id:
+            raise serializers.ValidationError({
+                'teacher_id': "Mã giảng viên là bắt buộc."
             })
         
         if role == User.Role.TEACHER and not department:

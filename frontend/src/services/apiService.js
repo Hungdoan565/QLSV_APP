@@ -6,7 +6,7 @@
 import axios from 'axios'
 
 // API Configuration - Use localhost for development
-const API_BASE_URL = 'http://localhost:8000/api'
+const API_BASE_URL = 'http://localhost:8001/api'
 const AUTH_ENDPOINTS = {
   LOGIN: '/auth/login/',
   REGISTER: '/auth/register/',
@@ -27,7 +27,7 @@ class APIService {
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
-      timeout: 10000,
+      timeout: 30000, // Increased from 10s to 30s
       headers: {
         'Content-Type': 'application/json',
       },
@@ -179,13 +179,16 @@ class APIService {
   }
 
   async getProfile() {
+    console.log('🌐 API: getProfile called')
     try {
       const response = await this.axiosInstance.get(AUTH_ENDPOINTS.PROFILE)
+      console.log('✅ API: getProfile success')
       return {
         success: true,
         user: response.data.user || response.data
       }
     } catch (error) {
+      console.log('❌ API: getProfile error:', error.message)
       return {
         success: false,
         error: error.response?.data || { message: 'Không thể lấy thông tin người dùng' }

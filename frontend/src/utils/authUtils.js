@@ -136,17 +136,31 @@ export class AuthUtils {
     if (!studentId) {
       return { isValid: false, error: 'Mã sinh viên là bắt buộc' };
     }
-    if (!/^[0-9]{6}$/.test(studentId)) {
-      return { isValid: false, error: 'Mã sinh viên phải đúng 6 chữ số' };
+    if (!/^[0-9]{6}$/.test(studentId.trim())) {
+      return { isValid: false, error: 'Mã sinh viên phải đúng 6 chữ số (VD: 226514)' };
     }
     return { isValid: true };
   }
 
   /**
-   * Validate email format
+   * Validate teacher ID (must be GV + 4 digits)
+   */
+  static validateTeacherId(teacherId) {
+    if (!teacherId) {
+      return { isValid: false, error: 'Mã giảng viên là bắt buộc' };
+    }
+    if (!/^GV[0-9]{4}$/.test(teacherId.trim())) {
+      return { isValid: false, error: 'Mã giảng viên phải đúng định dạng GV + 4 số (VD: GV0921)' };
+    }
+    return { isValid: true };
+  }
+
+  /**
+   * Validate email format (must be .edu domain for educational system)
    */
   static validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const eduDomainRegex = /\.edu(\.vn)?$/i;
     
     if (!email) {
       return { isValid: false, error: 'Email không được để trống' };
@@ -154,6 +168,10 @@ export class AuthUtils {
 
     if (!emailRegex.test(email)) {
       return { isValid: false, error: 'Email không hợp lệ' };
+    }
+
+    if (!eduDomainRegex.test(email)) {
+      return { isValid: false, error: 'Email phải là domain .edu hoặc .edu.vn (VD: student@university.edu.vn)' };
     }
 
     return { isValid: true };

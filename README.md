@@ -243,7 +243,7 @@ npm run dev
 
 | Role        | Email               | Password   | Quyền           |
 | ----------- | ------------------- | ---------- | --------------- |
-| **Admin**   | admin@example.com   | admin123   | Toàn quyền      |
+| **Admin**   | admin@qlsv.com      | admin123   | Toàn quyền      |
 | **Teacher** | teacher@example.com | teacher123 | Quản lý lớp học |
 
 ---

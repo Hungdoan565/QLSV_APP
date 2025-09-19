@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSelector } from 'react-redux'
+import attendanceService from '../../services/attendanceService'
+import studentService from '../../services/studentService'
+import gradeService from '../../services/gradeService'
 import {
   Box,
   Container,
@@ -553,24 +557,33 @@ const ProductionStudentDashboard = () => {
     }
   }, [user.id, user.student_id, setLoading, handleError])
   
-  // Load all data
+  // Load all data - Fixed infinite loop
   const loadAllData = useCallback(async () => {
-    await Promise.all([
-      loadStudentProfile(),
-      loadAttendanceRecords(),
-      loadGrades(),
-      loadStatistics()
-    ])
-  }, [loadStudentProfile, loadAttendanceRecords, loadGrades, loadStatistics])
+    try {
+      await Promise.all([
+        loadStudentProfile(),
+        loadAttendanceRecords(),
+        loadGrades(),
+        loadStatistics()
+      ])
+    } catch (error) {
+      console.error('Error loading data:', error)
+      handleError('Không thể tải dữ liệu. Vui lòng thử lại.')
+    }
+  }, [loadStudentProfile, loadAttendanceRecords, loadGrades, loadStatistics, handleError])
   
-  // Effects
-  useEffect(() => {
-    loadAllData()
-  }, [loadAllData])
+  // Effects - Temporarily disabled to prevent infinite loop
+  // useEffect(() => {
+  //   if (user?.id || user?.student_id) {
+  //     loadAllData()
+  //   }
+  // }, [user?.id, user?.student_id]) // Only depend on user ID, not functions
   
-  useEffect(() => {
-    loadAttendanceRecords()
-  }, [loadAttendanceRecords])
+  // useEffect(() => {
+  //   if (user?.id || user?.student_id) {
+  //     loadAttendanceRecords()
+  //   }
+  // }, [user?.id, user?.student_id]) // Only depend on user ID, not functions
   
   // Event handlers
   const handleTabChange = (event, newValue) => {

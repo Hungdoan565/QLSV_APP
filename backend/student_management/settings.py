@@ -5,6 +5,10 @@ Django settings for student_management project.
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
+import pymysql
+
+# Configure PyMySQL to work with Django
+pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -76,19 +80,20 @@ TEMPLATES = [
 WSGI_APPLICATION = 'student_management.wsgi.application'
 
 # Database
-# Check if PostgreSQL/Supabase settings are provided
+# Check if MySQL settings are provided
 if config('DB_NAME', default=None) and config('DB_USER', default=None):
-    # Use PostgreSQL/Supabase
+    # Use MySQL for production
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
+            'ENGINE': 'django.db.backends.mysql',
             'NAME': config('DB_NAME'),
             'USER': config('DB_USER'),
             'PASSWORD': config('DB_PASSWORD', default=''),
             'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='5432'),
+            'PORT': config('DB_PORT', default='3306'),
             'OPTIONS': {
-                'sslmode': 'require',
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             },
         }
     }
