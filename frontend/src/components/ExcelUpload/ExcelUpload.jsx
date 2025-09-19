@@ -191,7 +191,7 @@ const ExcelUpload = ({
           <Box textAlign="center">
             <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
             <Alert severity="success" sx={{ mb: 2 }}>
-              Upload thành công!
+              {uploadResult?.message || 'Upload thành công!'}
             </Alert>
             
             {uploadResult && (
@@ -203,22 +203,48 @@ const ExcelUpload = ({
                   <ListItem>
                     <ListItemText 
                       primary="Tổng số dòng" 
-                      secondary={uploadResult.total_rows || 'N/A'} 
+                      secondary={uploadResult.details?.total_rows_processed || uploadResult.total_rows || 'N/A'} 
                     />
                   </ListItem>
                   <ListItem>
                     <ListItemText 
                       primary="Dòng thành công" 
-                      secondary={uploadResult.success_rows || 'N/A'} 
+                      secondary={uploadResult.details?.successful_imports || uploadResult.success_rows || 'N/A'} 
                     />
                   </ListItem>
                   <ListItem>
                     <ListItemText 
                       primary="Dòng lỗi" 
-                      secondary={uploadResult.error_rows || 'N/A'} 
+                      secondary={uploadResult.details?.failed_imports || uploadResult.error_rows || 'N/A'} 
                     />
                   </ListItem>
                 </List>
+                
+                {/* Show errors if any */}
+                {uploadResult.errors && uploadResult.errors.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" color="error" gutterBottom>
+                      Chi tiết lỗi:
+                    </Typography>
+                    <List dense sx={{ maxHeight: 200, overflow: 'auto' }}>
+                      {uploadResult.errors.slice(0, 5).map((error, index) => (
+                        <ListItem key={index}>
+                          <ListItemText 
+                            primary={`Dòng ${error.row}: ${error.error || 'Lỗi không xác định'}`}
+                            secondary={error.data ? JSON.stringify(error.data) : ''}
+                          />
+                        </ListItem>
+                      ))}
+                      {uploadResult.errors.length > 5 && (
+                        <ListItem>
+                          <ListItemText 
+                            primary={`... và ${uploadResult.errors.length - 5} lỗi khác`}
+                          />
+                        </ListItem>
+                      )}
+                    </List>
+                  </Box>
+                )}
               </Paper>
             )}
           </Box>

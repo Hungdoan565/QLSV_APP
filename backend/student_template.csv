@@ -1,0 +1,4 @@
+student_id,first_name,last_name,email,phone,gender,date_of_birth,address
+MSSV001,Nguyễn,Văn A,nguyenvana@email.com,0123456789,male,2000-01-01,Hà Nội
+MSSV002,Trần,Thị B,tranthib@email.com,0987654321,female,2000-02-02,TP.HCM
+MSSV003,Lê,Văn C,levanc@email.com,0369852147,male,2000-03-03,Đà Nẵng
