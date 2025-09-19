@@ -44,6 +44,9 @@ import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
 import SessionManagement from '../../components/SessionManagement/SessionManagement'
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload'
+import classService from '../../services/classService'
+import attendanceService from '../../services/attendanceService'
+import gradeService from '../../services/gradeService'
 
 const ProperTeacherDashboard = () => {
   const { user } = useSelector((state) => state.auth)
@@ -52,6 +55,16 @@ const ProperTeacherDashboard = () => {
   const [excelUploadOpen, setExcelUploadOpen] = useState(false)
   const [uploadType, setUploadType] = useState('students') // 'students', 'grades', 'attendance'
   const [sessionManagementOpen, setSessionManagementOpen] = useState(false)
+  const [teacherData, setTeacherData] = useState({
+    statistics: {
+      totalClasses: 0,
+      activeStudents: 0,
+      attendanceRate: 0,
+      averageGrade: 0
+    },
+    todaySessions: [],
+    assignedClasses: []
+  })
 
   const loadTeacherData = useCallback(async () => {
     try {
