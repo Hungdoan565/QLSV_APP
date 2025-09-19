@@ -373,18 +373,42 @@ const ProductionStudentDashboard = () => {
   
   // Data loading functions
   const loadStudentProfile = useCallback(async () => {
+    // Check if user has valid student_id
+    if (!user?.id && !user?.student_id) {
+      console.warn('No valid user ID found')
+      return
+    }
+    
     try {
       setLoading('profile', true)
-      const response = await studentService.getStudent(user.student_id || user.id)
+      const studentId = user.student_id || user.id
+      console.log('Loading student profile for ID:', studentId)
+      
+      const response = await studentService.getStudent(studentId)
       setStudentData(prev => ({ ...prev, profile: response.data }))
     } catch (err) {
-      handleError(err, () => loadStudentProfile())
+      console.error('Failed to load student profile:', err)
+      // Don't retry on 404 - student might not exist
+      if (err.response?.status === 404) {
+        setError('Student profile not found. Please contact administrator.')
+        return
+      }
+      // Only retry on network errors, not 404s
+      if (err.code !== 'ERR_BAD_REQUEST') {
+        handleError(err, () => loadStudentProfile())
+      }
     } finally {
       setLoading('profile', false)
     }
   }, [user.id, user.student_id, setLoading, handleError])
   
   const loadAttendanceRecords = useCallback(async () => {
+    // Check if user has valid student_id
+    if (!user?.id && !user?.student_id) {
+      console.warn('No valid user ID for attendance records')
+      return
+    }
+    
     try {
       setLoading('attendance', true)
       const response = await attendanceService.getAttendances({
@@ -396,13 +420,28 @@ const ProductionStudentDashboard = () => {
       })
       setStudentData(prev => ({ ...prev, attendanceRecords: response.data.results || [] }))
     } catch (err) {
-      handleError(err, () => loadAttendanceRecords())
+      console.error('Failed to load attendance records:', err)
+      // Don't retry on 404 - no attendance records yet
+      if (err.response?.status === 404) {
+        setStudentData(prev => ({ ...prev, attendanceRecords: [] }))
+        return
+      }
+      // Only retry on network errors
+      if (err.code !== 'ERR_BAD_REQUEST') {
+        handleError(err, () => loadAttendanceRecords())
+      }
     } finally {
       setLoading('attendance', false)
     }
   }, [user.id, user.student_id, page, rowsPerPage, searchTerm, filterStatus, setLoading, handleError])
   
   const loadGrades = useCallback(async () => {
+    // Check if user has valid student_id
+    if (!user?.id && !user?.student_id) {
+      console.warn('No valid user ID for grades')
+      return
+    }
+    
     try {
       setLoading('grades', true)
       const response = await gradeService.getGrades({
@@ -411,13 +450,28 @@ const ProductionStudentDashboard = () => {
       })
       setStudentData(prev => ({ ...prev, recentGrades: response.data.results || [] }))
     } catch (err) {
-      handleError(err, () => loadGrades())
+      console.error('Failed to load grades:', err)
+      // Don't retry on 404 - no grades yet
+      if (err.response?.status === 404) {
+        setStudentData(prev => ({ ...prev, recentGrades: [] }))
+        return
+      }
+      // Only retry on network errors
+      if (err.code !== 'ERR_BAD_REQUEST') {
+        handleError(err, () => loadGrades())
+      }
     } finally {
       setLoading('grades', false)
     }
   }, [user.id, user.student_id, setLoading, handleError])
   
   const loadStatistics = useCallback(async () => {
+    // Check if user has valid student_id
+    if (!user?.id && !user?.student_id) {
+      console.warn('No valid user ID for statistics')
+      return
+    }
+    
     try {
       setLoading('statistics', true)
       
@@ -476,7 +530,28 @@ const ProductionStudentDashboard = () => {
         }
       }))
     } catch (err) {
-      handleError(err, () => loadStatistics())
+      console.error('Failed to load statistics:', err)
+      // Don't retry on 404 - no data yet
+      if (err.response?.status === 404) {
+        // Set default statistics
+        setStudentData(prev => ({
+          ...prev,
+          statistics: {
+            attendanceRate: 0,
+            totalClasses: 0,
+            averageGrade: 0,
+            thisWeekAttendance: 0,
+            gpa: 0,
+            creditsEarned: 0,
+            creditsRemaining: 0
+          }
+        }))
+        return
+      }
+      // Only retry on network errors
+      if (err.code !== 'ERR_BAD_REQUEST') {
+        handleError(err, () => loadStatistics())
+      }
     } finally {
       setLoading('statistics', false)
     }
