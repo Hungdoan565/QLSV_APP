@@ -82,37 +82,33 @@ const App = () => {
     <ErrorBoundary>
       <SnackbarProvider maxSnack={3}>
         <Routes>
-          {/* Public Routes */}
+          {/* Public Routes - Only accessible when NOT authenticated */}
           <Route path="/login" element={
             isAuthenticated ? <Navigate to={getDashboardRoute(user?.role)} replace /> : <Login />
           } />
           <Route path="/register" element={
             isAuthenticated ? <Navigate to={getDashboardRoute(user?.role)} replace /> : <Register />
           } />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/forgot-password" element={
+            isAuthenticated ? <Navigate to={getDashboardRoute(user?.role)} replace /> : <ForgotPassword />
+          } />
+          <Route path="/reset-password" element={
+            isAuthenticated ? <Navigate to={getDashboardRoute(user?.role)} replace /> : <ResetPassword />
+          } />
           <Route path="/pending-approval" element={<PendingApproval />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Root Route */}
-          <Route path="/" element={
-            isAuthenticated ? (
-              <ProtectedRoute>
-                <Layout>
-                  <Navigate to={getDashboardRoute(user?.role)} replace />
-                </Layout>
-              </ProtectedRoute>
-            ) : (
-              <HomePage />
-            )
-          } />
+          {/* Root Route - Public homepage */}
+          <Route path="/" element={<HomePage />} />
 
-          {/* Home Route for authenticated users */}
+          {/* Authenticated Routes - Only accessible when authenticated */}
           <Route path="/home" element={
             <ProtectedRoute>
               <HomePage />
             </ProtectedRoute>
           } />
+
+          {/* Dashboard Routes - Role-based */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Layout>
@@ -121,31 +117,7 @@ const App = () => {
             </ProtectedRoute>
           } />
 
-          <Route path="/admin/dashboard" element={
-            <ProtectedRoute requiredRole="admin">
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/teacher/dashboard" element={
-            <ProtectedRoute requiredRole="teacher">
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/student/dashboard" element={
-            <ProtectedRoute requiredRole="student">
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          } />
-
-          {/* Management Routes */}
+          {/* Management Routes - Role-based */}
           <Route path="/students" element={
             <ProtectedRoute requiredRole="admin">
               <Layout>
@@ -155,7 +127,7 @@ const App = () => {
           } />
 
           <Route path="/classes" element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole={['admin', 'teacher']}>
               <Layout>
                 <Classes />
               </Layout>
@@ -163,7 +135,7 @@ const App = () => {
           } />
 
           <Route path="/grades" element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
               <Layout>
                 <Grades />
               </Layout>
@@ -171,7 +143,7 @@ const App = () => {
           } />
 
           <Route path="/attendance" element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
               <Layout>
                 <Attendance />
               </Layout>

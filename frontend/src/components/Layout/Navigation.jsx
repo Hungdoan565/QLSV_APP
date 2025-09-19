@@ -50,16 +50,8 @@ const Navigation = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
   }
 
   const getDashboardRoute = (userRole) => {
-    switch (userRole) {
-      case 'admin':
-        return '/admin/dashboard'
-      case 'teacher':
-        return '/teacher/dashboard'
-      case 'student':
-        return '/student/dashboard'
-      default:
-        return '/dashboard'
-    }
+    // Always use the unified dashboard route
+    return '/dashboard'
   }
 
   const drawer = (

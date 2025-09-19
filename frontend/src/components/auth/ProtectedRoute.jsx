@@ -48,8 +48,18 @@ const ProtectedRoute = ({
   }
 
   // Check specific role requirement
-  if (requiredRole && !AuthUtils.hasRole(user, requiredRole)) {
-    return <Navigate to="/unauthorized" replace />;
+  if (requiredRole) {
+    if (Array.isArray(requiredRole)) {
+      // Check if user has any of the required roles
+      if (!AuthUtils.hasAnyRole(user, requiredRole)) {
+        return <Navigate to="/unauthorized" replace />;
+      }
+    } else {
+      // Check single role
+      if (!AuthUtils.hasRole(user, requiredRole)) {
+        return <Navigate to="/unauthorized" replace />;
+      }
+    }
   }
 
   // Check account status
