@@ -96,20 +96,20 @@ def import_excel(request):
         workbook = load_workbook(io.BytesIO(excel_file.read()))
         worksheet = workbook.active
         
-        # Get headers from first row
+        # Get headers from second row (row 2) - Vietnamese Excel format
         headers = []
-        for cell in worksheet[1]:
+        for cell in worksheet[2]:  # Row 2 instead of row 1
             headers.append(cell.value.lower().replace(' ', '_') if cell.value else '')
         
-        # Expected columns mapping
+        # Expected columns mapping for Vietnamese Excel
         column_mapping = {
-            'student_id': ['student_id', 'mssv', 'id'],
-            'first_name': ['first_name', 'ten', 'ho_ten', 'name'],
-            'last_name': ['last_name', 'ho', 'surname'],
+            'student_id': ['student_id', 'mssv', 'id', 'mã_sinh_viên'],
+            'first_name': ['first_name', 'ten', 'ho_ten', 'name', 'tên'],
+            'last_name': ['last_name', 'ho', 'surname', 'họ_đệm'],
             'email': ['email', 'mail'],
             'phone': ['phone', 'sdt', 'telephone'],
-            'gender': ['gender', 'gioi_tinh', 'sex'],
-            'date_of_birth': ['date_of_birth', 'ngay_sinh', 'birthday'],
+            'gender': ['gender', 'gioi_tinh', 'sex', 'giới_tính'],
+            'date_of_birth': ['date_of_birth', 'ngay_sinh', 'birthday', 'ngày_sinh'],
             'address': ['address', 'dia_chi', 'location']
         }
         
@@ -124,8 +124,8 @@ def import_excel(request):
         created_students = []
         errors = []
         
-        # Process each row
-        for row_num in range(2, worksheet.max_row + 1):
+        # Process each row starting from row 3 (data starts after header row 2)
+        for row_num in range(3, worksheet.max_row + 1):
             try:
                 row_data = {}
                 for field, col_index in field_mapping.items():
@@ -137,6 +137,28 @@ def import_excel(request):
                     row_data['gender'] = 'male'
                 if not row_data.get('date_of_birth'):
                     row_data['date_of_birth'] = '2000-01-01'
+                
+                # Convert Vietnamese gender to English
+                if row_data.get('gender'):
+                    gender_map = {
+                        'nam': 'male',
+                        'nữ': 'female',
+                        'male': 'male',
+                        'female': 'female'
+                    }
+                    row_data['gender'] = gender_map.get(row_data['gender'].lower(), 'male')
+                
+                # Convert date format from DD/MM/YYYY to YYYY-MM-DD
+                if row_data.get('date_of_birth') and row_data['date_of_birth'] != '2000-01-01':
+                    try:
+                        from datetime import datetime
+                        # Try to parse DD/MM/YYYY format
+                        if '/' in row_data['date_of_birth']:
+                            date_obj = datetime.strptime(row_data['date_of_birth'], '%d/%m/%Y')
+                            row_data['date_of_birth'] = date_obj.strftime('%Y-%m-%d')
+                    except ValueError:
+                        # If parsing fails, keep original or set default
+                        row_data['date_of_birth'] = '2000-01-01'
                 
                 # Validate required fields
                 if not row_data.get('student_id') or not row_data.get('first_name'):
@@ -182,7 +204,7 @@ def import_excel(request):
             'created_students': created_students,
             'errors': errors,
             'details': {
-                'total_rows_processed': worksheet.max_row - 1,
+                'total_rows_processed': worksheet.max_row - 2,  # Subtract header row (row 2)
                 'successful_imports': len(created_students),
                 'failed_imports': len(errors)
             }
