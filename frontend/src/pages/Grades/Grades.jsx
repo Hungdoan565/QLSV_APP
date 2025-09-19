@@ -76,37 +76,49 @@ const Grades = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {grades.map((grade) => (
-                <TableRow key={grade.id}>
-                  <TableCell>
-                    {grade.student?.first_name} {grade.student?.last_name}
-                  </TableCell>
-                  <TableCell>{grade.class?.class_name}</TableCell>
-                  <TableCell>{grade.subject}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={grade.score}
-                      color={grade.score >= 5 ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{grade.grade_type}</TableCell>
-                  <TableCell>
-                    {grade.created_at ? new Date(grade.created_at).toLocaleDateString('vi-VN') : '-'}
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton size="small" color="primary">
-                      <Visibility />
-                    </IconButton>
-                    <IconButton size="small" color="primary">
-                      <Edit />
-                    </IconButton>
-                    <IconButton size="small" color="error">
-                      <Delete />
-                    </IconButton>
+              {grades && Array.isArray(grades) && grades.length > 0 ? (
+                grades.map((grade) => (
+                  <TableRow key={grade.id}>
+                    <TableCell>
+                      {grade.student?.first_name} {grade.student?.last_name}
+                    </TableCell>
+                    <TableCell>{grade.class?.class_name}</TableCell>
+                    <TableCell>{grade.subject}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={grade.score}
+                        color={grade.score >= 5 ? 'success' : 'error'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>{grade.grade_type}</TableCell>
+                    <TableCell>
+                      {grade.created_at ? new Date(grade.created_at).toLocaleDateString('vi-VN') : '-'}
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton size="small" color="primary">
+                        <Visibility />
+                      </IconButton>
+                      <IconButton size="small" color="primary">
+                        <Edit />
+                      </IconButton>
+                      <IconButton size="small" color="error">
+                        <Delete />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography variant="body2" color="text.secondary">
+                      {grades && Array.isArray(grades) && grades.length === 0 
+                        ? 'Chưa có dữ liệu điểm số' 
+                        : 'Đang tải dữ liệu...'}
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>

@@ -119,17 +119,11 @@ const Login = () => {
   };
 
   const getDashboardPath = (role) => {
-    switch (role) {
-      case 'admin':
-        return '/admin/dashboard';
-      case 'teacher':
-        return '/teacher/dashboard';
-      case 'student':
-        return '/student/dashboard';
-      default:
-        return '/dashboard';
-    }
-  };  return (
+    // Always redirect to unified dashboard
+    return '/dashboard'
+  }
+
+  return (
     <Box
       sx={{
         minHeight: '100vh',

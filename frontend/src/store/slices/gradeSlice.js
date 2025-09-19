@@ -37,7 +37,8 @@ const gradeSlice = createSlice({
       })
       .addCase(fetchGrades.fulfilled, (state, action) => {
         state.isLoading = false
-        state.grades = action.payload
+        // Ensure grades is always an array
+        state.grades = Array.isArray(action.payload) ? action.payload : []
       })
       .addCase(fetchGrades.rejected, (state, action) => {
         state.isLoading = false

@@ -142,6 +142,14 @@ const authSlice = createSlice({
       .addCase(getProfile.rejected, (state, action) => {
         state.isLoading = false
         state.error = action.payload
+        // If profile fetch fails, user might not be authenticated
+        // Clear auth state to force re-login
+        state.user = null
+        state.isAuthenticated = false
+        state.token = null
+        state.refreshToken = null
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
       })
       // Update Profile
       .addCase(updateProfile.pending, (state) => {

@@ -66,16 +66,8 @@ const App = () => {
 
   // Helper function to get dashboard route based on user role
   const getDashboardRoute = (userRole) => {
-    switch (userRole) {
-      case 'admin':
-        return '/admin/dashboard'
-      case 'teacher':
-        return '/teacher/dashboard'
-      case 'student':
-        return '/student/dashboard'
-      default:
-        return '/dashboard'
-    }
+    // Always use unified dashboard route
+    return '/dashboard'
   }
 
   return (
