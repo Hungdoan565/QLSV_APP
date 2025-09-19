@@ -50,7 +50,8 @@ const classSlice = createSlice({
       })
       .addCase(fetchClasses.fulfilled, (state, action) => {
         state.isLoading = false
-        state.classes = action.payload
+        // Ensure classes is always an array
+        state.classes = Array.isArray(action.payload) ? action.payload : []
       })
       .addCase(fetchClasses.rejected, (state, action) => {
         state.isLoading = false

@@ -54,7 +54,7 @@ export const fetchStudentStatistics = createAsyncThunk(
   'students/fetchStudentStatistics',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/students/statistics/')
+      const response = await apiService.axiosInstance.get('/students/statistics/')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Không thể tải thống kê sinh viên')
@@ -86,7 +86,8 @@ const studentSlice = createSlice({
       })
       .addCase(fetchStudents.fulfilled, (state, action) => {
         state.isLoading = false
-        state.students = action.payload
+        // Ensure students is always an array
+        state.students = Array.isArray(action.payload) ? action.payload : []
       })
       .addCase(fetchStudents.rejected, (state, action) => {
         state.isLoading = false
