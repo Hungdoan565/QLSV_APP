@@ -38,12 +38,13 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Upload as UploadIcon,
+  ContentCopy as CopyIcon,
 } from '@mui/icons-material'
 import { useSelector, useDispatch } from 'react-redux'
 import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
 import SessionManagement from '../../components/SessionManagement/SessionManagement'
-import ExcelUpload from '../../components/ExcelUpload/ExcelUpload'
+import ExcelDragDrop from '../../components/ExcelDragDrop/ExcelDragDrop'
 import classService from '../../services/classService'
 import attendanceService from '../../services/attendanceService'
 import gradeService from '../../services/gradeService'
@@ -508,17 +509,28 @@ const ProperTeacherDashboard = () => {
                   Import Điểm Số
                 </Button>
               </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<UploadIcon />}
-                  onClick={() => handleExcelUpload('attendance')}
-                  sx={{ py: 1.5 }}
-                >
-                  Import Điểm Danh
-                </Button>
-              </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        startIcon={<UploadIcon />}
+                        onClick={() => handleExcelUpload('attendance')}
+                        sx={{ py: 1.5 }}
+                      >
+                        Import Điểm Danh
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<UploadIcon />}
+                        onClick={() => handleExcelUpload('students')}
+                        sx={{ py: 1.5 }}
+                      >
+                        Kéo Thả Excel
+                      </Button>
+                    </Grid>
             </Grid>
           </CardContent>
         </Card>
@@ -530,13 +542,11 @@ const ProperTeacherDashboard = () => {
           onSessionUpdated={handleSessionUpdated}
         />
 
-        {/* Excel Upload Dialog */}
-        <ExcelUpload
+        {/* Excel Drag Drop Dialog */}
+        <ExcelDragDrop
           open={excelUploadOpen}
           onClose={() => setExcelUploadOpen(false)}
-          onUploadSuccess={handleUploadSuccess}
-          uploadEndpoint={getUploadEndpoint()}
-          acceptedTypes={['.xlsx', '.xls']}
+          onImportSuccess={handleUploadSuccess}
           maxFileSize={5 * 1024 * 1024} // 5MB
         />
       </Container>

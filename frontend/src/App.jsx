@@ -26,8 +26,7 @@ import Attendance from './pages/Attendance/Attendance'
 import Profile from './pages/Profile/Profile'
 import NotFound from './pages/NotFound/NotFound'
 
-// Debug Components
-import LoginTest from './pages/Debug/LoginTest'
+// Debug Components - Removed
 
 // Protected Route Component
 import ProtectedRoute from './components/auth/ProtectedRoute'
@@ -151,8 +150,7 @@ const App = () => {
             </ProtectedRoute>
           } />
 
-          {/* Debug Routes */}
-          <Route path="/debug/login-test" element={<LoginTest />} />
+          {/* Debug Routes - Removed */}
 
           {/* 404 Route */}
           <Route path="*" element={<NotFound />} />

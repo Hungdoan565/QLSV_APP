@@ -5,7 +5,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.http import HttpResponse, JsonResponse
 from django.db.models import Q
 from .models import Student
-from .serializers import StudentSerializer, StudentCreateSerializer
+from .serializers import StudentSerializer
+from .bulk_views import bulk_create_students
 
 
 class StudentListCreateView(generics.ListCreateAPIView):
@@ -121,6 +122,10 @@ def import_excel(request):
                     field_mapping[field] = headers.index(header)
                     break
         
+        # Debug: Print headers and field mapping
+        print(f"DEBUG: Headers found: {headers}")
+        print(f"DEBUG: Field mapping: {field_mapping}")
+        
         created_students = []
         errors = []
         
@@ -130,13 +135,28 @@ def import_excel(request):
                 row_data = {}
                 for field, col_index in field_mapping.items():
                     cell_value = worksheet.cell(row=row_num, column=col_index + 1).value
-                    row_data[field] = str(cell_value).strip() if cell_value else ''
+                    # Better handling of empty/null values
+                    if cell_value is None or str(cell_value).strip() == '':
+                        row_data[field] = ''
+                    else:
+                        row_data[field] = str(cell_value).strip()
+                
+                # Debug: Print first few rows
+                if row_num <= 5:
+                    print(f"DEBUG: Row {row_num} data: {row_data}")
                 
                 # Set defaults for missing fields
                 if not row_data.get('gender'):
                     row_data['gender'] = 'male'
                 if not row_data.get('date_of_birth'):
                     row_data['date_of_birth'] = '2000-01-01'
+                if not row_data.get('email'):
+                    # Generate email from student_id if not provided
+                    row_data['email'] = f"{row_data.get('student_id', 'student')}@student.edu.vn"
+                if not row_data.get('phone'):
+                    row_data['phone'] = ''
+                if not row_data.get('address'):
+                    row_data['address'] = ''
                 
                 # Convert Vietnamese gender to English
                 if row_data.get('gender'):
@@ -162,9 +182,11 @@ def import_excel(request):
                 
                 # Validate required fields
                 if not row_data.get('student_id') or not row_data.get('first_name'):
+                    error_msg = f'Missing required fields: student_id={row_data.get("student_id")}, first_name={row_data.get("first_name")}'
+                    print(f"DEBUG: Row {row_num} validation failed: {error_msg}")
                     errors.append({
                         'row': row_num,
-                        'error': 'Missing required fields: student_id and first_name',
+                        'error': error_msg,
                         'data': row_data
                     })
                     continue
@@ -183,10 +205,12 @@ def import_excel(request):
                 if serializer.is_valid():
                     student = serializer.save()
                     created_students.append(StudentSerializer(student).data)
+                    print(f"DEBUG: Row {row_num} created successfully: {student.student_id}")
                 else:
+                    print(f"DEBUG: Row {row_num} serializer failed: {serializer.errors}")
                     errors.append({
                         'row': row_num,
-                        'errors': serializer.errors,
+                        'error': f'Validation failed: {serializer.errors}',
                         'data': row_data
                     })
                     
@@ -197,9 +221,12 @@ def import_excel(request):
                     'data': f'Row {row_num} processing failed'
                 })
         
+        # Determine success based on actual results
+        success = len(created_students) > 0 or len(errors) == 0
+        
         return Response({
-            'success': True,
-            'message': f'Successfully imported {len(created_students)} students from Excel file',
+            'success': success,
+            'message': f'Successfully imported {len(created_students)} students from Excel file' if success else f'Import completed with {len(errors)} errors',
             'created_count': len(created_students),
             'created_students': created_students,
             'errors': errors,
