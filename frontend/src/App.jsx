@@ -107,7 +107,12 @@ const App = () => {
             )
           } />
 
-          {/* Dashboard Routes */}
+          {/* Home Route for authenticated users */}
+          <Route path="/home" element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          } />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Layout>

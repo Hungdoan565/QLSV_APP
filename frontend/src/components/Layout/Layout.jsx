@@ -47,6 +47,12 @@ const drawerWidth = 280
 const getNavigationItems = (userRole) => {
   const baseItems = [
     { 
+      text: 'Trang chủ', 
+      icon: <Home />, 
+      path: '/home',
+      roles: ['admin', 'teacher', 'student']
+    },
+    { 
       text: 'Tổng quan', 
       icon: <Dashboard />, 
       path: '/dashboard',
