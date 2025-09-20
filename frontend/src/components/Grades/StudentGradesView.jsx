@@ -55,73 +55,107 @@ const StudentGradesView = ({ user }) => {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        // Mock data with 10%-30%-60% system
+        // Mock data with 10%-30%-60% system (hệ điểm 10)
         const mockGrades = [
           {
             id: 1,
-            subject: 'Lập trình Web',
-            subjectCode: 'CS101',
-            teacher: 'ThS. Nguyễn Văn Minh',
-            semester: '2024-1',
+            subject: 'Lập trình Python',
+            subjectCode: 'DH22TIN06',
+            teacher: 'GV: Đặng Mạnh Huy',
+            semester: 'HK1 2024-2025',
             components: {
               regular: {
                 weight: 10,
-                maxScore: 100,
-                currentScore: 85,
+                maxScore: 10,
+                currentScore: 8.5,
                 items: [
-                  { name: 'Bài tập 1', score: 90, maxScore: 100, date: '2024-01-15' },
-                  { name: 'Bài tập 2', score: 80, maxScore: 100, date: '2024-01-22' },
-                  { name: 'Thuyết trình', score: 85, maxScore: 100, date: '2024-01-29' }
+                  { name: 'Bài tập Python cơ bản', score: 9.0, maxScore: 10, date: '2024-09-15' },
+                  { name: 'Bài tập OOP', score: 8.0, maxScore: 10, date: '2024-09-22' },
+                  { name: 'Project Flask', score: 8.5, maxScore: 10, date: '2024-09-29' }
                 ]
               },
               midterm: {
                 weight: 30,
-                maxScore: 100,
-                currentScore: 78,
+                maxScore: 10,
+                currentScore: 7.8,
                 items: [
-                  { name: 'Giữa kỳ', score: 78, maxScore: 100, date: '2024-02-15' }
+                  { name: 'Giữa kỳ', score: 7.8, maxScore: 10, date: '2024-02-15' }
                 ]
               },
               final: {
                 weight: 60,
-                maxScore: 100,
-                currentScore: 92,
+                maxScore: 10,
+                currentScore: 9.2,
                 items: [
-                  { name: 'Cuối kỳ', score: 92, maxScore: 100, date: '2024-03-20' }
+                  { name: 'Cuối kỳ', score: 9.2, maxScore: 10, date: '2024-03-20' }
                 ]
               }
             },
-            finalGrade: 87.1,
+            finalGrade: 8.7,
             status: 'completed'
           },
           {
             id: 2,
-            subject: 'Cơ sở dữ liệu',
-            subjectCode: 'CS102',
-            teacher: 'TS. Lê Thị Hoa',
-            semester: '2024-1',
+            subject: 'Phát triển phần mềm mã nguồn mở',
+            subjectCode: 'DH22TIN06',
+            teacher: 'GV: Võ Thanh Vinh',
+            semester: 'HK1 2024-2025',
             components: {
               regular: {
                 weight: 10,
-                maxScore: 100,
-                currentScore: 88,
+                maxScore: 10,
+                currentScore: 8.8,
                 items: [
-                  { name: 'Bài tập 1', score: 85, maxScore: 100, date: '2024-01-16' },
-                  { name: 'Bài tập 2', score: 90, maxScore: 100, date: '2024-01-23' },
-                  { name: 'Thực hành', score: 89, maxScore: 100, date: '2024-01-30' }
+                  { name: 'Bài tập Git/GitHub', score: 8.5, maxScore: 10, date: '2024-09-16' },
+                  { name: 'Bài tập Docker', score: 9.0, maxScore: 10, date: '2024-09-23' },
+                  { name: 'Thực hành Linux', score: 8.9, maxScore: 10, date: '2024-09-30' }
                 ]
               },
               midterm: {
                 weight: 30,
-                maxScore: 100,
-                currentScore: 82,
+                maxScore: 10,
+                currentScore: 8.2,
                 items: [
-                  { name: 'Giữa kỳ', score: 82, maxScore: 100, date: '2024-02-16' }
+                  { name: 'Giữa kỳ', score: 8.2, maxScore: 10, date: '2024-10-22' }
                 ]
               },
               final: {
                 weight: 60,
-                maxScore: 100,
+                maxScore: 10,
+                currentScore: 9.0,
+                items: [
+                  { name: 'Cuối kỳ', score: 9.0, maxScore: 10, date: '2024-11-28' }
+                ]
+              }
+            },
+            finalGrade: 8.9,
+            status: 'completed'
+          },
+          {
+            id: 3,
+            subject: 'Lịch sử Đảng cộng sản Việt Nam',
+            subjectCode: 'DH22TIN06',
+            teacher: 'GV: Đinh Cao Tín',
+            semester: 'HK1 2024-2025',
+            components: {
+              regular: {
+                weight: 10,
+                maxScore: 10,
+                currentScore: 7.5,
+                items: [
+                  { name: 'Bài tập 1', score: 7.0, maxScore: 10, date: '2024-01-17' },
+                  { name: 'Bài tập 2', score: 8.0, maxScore: 10, date: '2024-01-24' }
+                ]
+              },
+              midterm: {
+                weight: 30,
+                maxScore: 10,
+                currentScore: 0,
+                items: []
+              },
+              final: {
+                weight: 60,
+                maxScore: 10,
                 currentScore: 0,
                 items: []
               }
@@ -130,36 +164,74 @@ const StudentGradesView = ({ user }) => {
             status: 'in_progress'
           },
           {
-            id: 3,
-            subject: 'Mạng máy tính',
-            subjectCode: 'CS103',
-            teacher: 'ThS. Trần Văn Nam',
-            semester: '2024-1',
+            id: 4,
+            subject: 'Lập trình thiết bị di động',
+            subjectCode: 'DH22TIN06',
+            teacher: 'GV: Đoàn Chí Trung',
+            semester: 'HK1 2024-2025',
             components: {
               regular: {
                 weight: 10,
-                maxScore: 100,
-                currentScore: 75,
+                maxScore: 10,
+                currentScore: 8.2,
                 items: [
-                  { name: 'Bài tập 1', score: 70, maxScore: 100, date: '2024-01-17' },
-                  { name: 'Bài tập 2', score: 80, maxScore: 100, date: '2024-01-24' }
+                  { name: 'Bài tập Android', score: 8.0, maxScore: 10, date: '2024-09-20' },
+                  { name: 'Bài tập iOS', score: 8.5, maxScore: 10, date: '2024-09-27' }
                 ]
               },
               midterm: {
                 weight: 30,
-                maxScore: 100,
-                currentScore: 0,
-                items: []
+                maxScore: 10,
+                currentScore: 7.8,
+                items: [
+                  { name: 'Giữa kỳ', score: 7.8, maxScore: 10, date: '2024-10-25' }
+                ]
               },
               final: {
                 weight: 60,
-                maxScore: 100,
+                maxScore: 10,
                 currentScore: 0,
                 items: []
               }
             },
             finalGrade: 0,
             status: 'in_progress'
+          },
+          {
+            id: 5,
+            subject: 'Pháp luật về công nghệ thông tin',
+            subjectCode: 'DH22TIN06',
+            teacher: 'GV: Trần Minh Tâm',
+            semester: 'HK1 2024-2025',
+            components: {
+              regular: {
+                weight: 10,
+                maxScore: 10,
+                currentScore: 8.5,
+                items: [
+                  { name: 'Bài tập luật CNTT', score: 8.5, maxScore: 10, date: '2024-09-25' },
+                  { name: 'Thuyết trình', score: 8.5, maxScore: 10, date: '2024-10-02' }
+                ]
+              },
+              midterm: {
+                weight: 30,
+                maxScore: 10,
+                currentScore: 8.3,
+                items: [
+                  { name: 'Giữa kỳ', score: 8.3, maxScore: 10, date: '2024-11-01' }
+                ]
+              },
+              final: {
+                weight: 60,
+                maxScore: 10,
+                currentScore: 8.7,
+                items: [
+                  { name: 'Cuối kỳ', score: 8.7, maxScore: 10, date: '2024-12-05' }
+                ]
+              }
+            },
+            finalGrade: 8.6,
+            status: 'completed'
           }
         ]
         
@@ -184,17 +256,18 @@ const StudentGradesView = ({ user }) => {
   }
 
   const getGradeColor = (grade) => {
-    if (grade >= 90) return 'success'
-    if (grade >= 80) return 'info'
-    if (grade >= 70) return 'warning'
+    if (grade >= 9.0) return 'success'
+    if (grade >= 8.0) return 'info'
+    if (grade >= 7.0) return 'warning'
+    if (grade >= 5.0) return 'default'
     return 'error'
   }
 
   const getGradeText = (grade) => {
-    if (grade >= 90) return 'Xuất sắc'
-    if (grade >= 80) return 'Giỏi'
-    if (grade >= 70) return 'Khá'
-    if (grade >= 50) return 'Trung bình'
+    if (grade >= 9.0) return 'Xuất sắc'
+    if (grade >= 8.0) return 'Giỏi'
+    if (grade >= 7.0) return 'Khá'
+    if (grade >= 5.0) return 'Trung bình'
     return 'Yếu'
   }
 
@@ -229,8 +302,11 @@ const StudentGradesView = ({ user }) => {
         <Typography variant="h5" fontWeight={600} gutterBottom>
           Điểm số của tôi
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           Hệ thống chấm điểm: 10% (thường xuyên) + 30% (giữa kỳ) + 60% (cuối kỳ)
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Thang điểm 10: Xuất sắc (≥9.0), Giỏi (≥8.0), Khá (≥7.0), Trung bình (≥5.0), Yếu (&lt;5.0)
         </Typography>
       </Box>
 
@@ -296,7 +372,7 @@ const StudentGradesView = ({ user }) => {
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
                   <Typography variant="h4" fontWeight={600} color="success.main">
-                    {grades.filter(g => g.finalGrade >= 80).length}
+                    {grades.filter(g => g.finalGrade >= 8.0).length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Môn đạt loại giỏi

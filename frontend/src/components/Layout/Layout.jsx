@@ -35,6 +35,7 @@ import {
   Assessment,
   Home,
   ChevronLeft,
+  Schedule,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -113,6 +114,12 @@ const getNavigationItems = (userRole) => {
       text: 'Điểm số', 
       icon: <Assessment />, 
       path: '/grades',
+      roles: ['student']
+    },
+    { 
+      text: 'Thời khóa biểu', 
+      icon: <Schedule />, 
+      path: '/schedule',
       roles: ['student']
     },
     { 

@@ -185,6 +185,7 @@ import { MockDataProvider, useMockData } from '../../components/Dashboard/MockDa
 import MockDataNotice from '../../components/Dashboard/MockDataNotice'
 import StudentClassList from '../../components/Class/StudentClassList'
 import StudentGradesView from '../../components/Grades/StudentGradesView'
+import StudentScheduleView from '../../components/Schedule/StudentScheduleView'
 
 // Custom Hooks
 const useErrorHandler = () => {
@@ -920,6 +921,7 @@ const ProductionStudentDashboard = () => {
               <Tab label="Điểm danh" icon={<ScheduleIcon />} />
               <Tab label="Lớp học" icon={<SchoolIcon />} />
               <Tab label="Điểm số" icon={<GradeIcon />} />
+              <Tab label="Thời khóa biểu" icon={<CalendarIcon />} />
               <Tab label="Bài tập" icon={<AssignmentIcon />} />
             </Tabs>
           </Box>
@@ -949,6 +951,10 @@ const ProductionStudentDashboard = () => {
             </TabPanel>
             
             <TabPanel value={activeTab} index={4}>
+              <StudentScheduleView user={user} />
+            </TabPanel>
+            
+            <TabPanel value={activeTab} index={5}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" fontWeight={600} gutterBottom>

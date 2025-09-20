@@ -23,6 +23,7 @@ import Students from './pages/Students/Students'
 import Classes from './pages/Classes/Classes'
 import Grades from './pages/Grades/Grades'
 import Attendance from './pages/Attendance/Attendance'
+import Schedule from './pages/Schedule/Schedule'
 import Profile from './pages/Profile/Profile'
 import NotFound from './pages/NotFound/NotFound'
 
@@ -140,6 +141,14 @@ const App = () => {
             <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
               <Layout>
                 <Attendance />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/schedule" element={
+            <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
+              <Layout>
+                <Schedule />
               </Layout>
             </ProtectedRoute>
           } />

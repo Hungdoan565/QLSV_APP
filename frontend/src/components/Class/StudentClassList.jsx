@@ -65,43 +65,67 @@ const StudentClassList = ({ user }) => {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        // Mock data
+        // Mock data based on real schedule
         const mockClasses = [
           {
             id: 1,
-            name: 'Lập trình Web',
+            name: 'Lập trình Python',
             code: '110101101010', // 12-digit binary
-            teacher: 'ThS. Nguyễn Văn Minh',
-            schedule: 'Thứ 2, 4, 6 - 8:00-10:00',
-            location: 'Phòng A101',
+            teacher: 'GV: Đặng Mạnh Huy',
+            schedule: 'Thứ 2 - 07:00-11:00 (Tiết 7-11)',
+            location: 'Phòng 14-02 (Phòng máy 8)',
             status: 'active',
-            joinedAt: '2024-01-15',
-            totalStudents: 45,
-            description: 'Học về HTML, CSS, JavaScript và React'
+            joinedAt: '2024-09-01',
+            totalStudents: 42,
+            description: 'Học lập trình Python cơ bản và nâng cao, thực hành trên máy tính'
           },
           {
             id: 2,
-            name: 'Cơ sở dữ liệu',
+            name: 'Phát triển phần mềm mã nguồn mở',
             code: '101010101010', // 12-digit binary
-            teacher: 'TS. Lê Thị Hoa',
-            schedule: 'Thứ 3, 5 - 14:00-16:00',
-            location: 'Phòng B202',
+            teacher: 'GV: Võ Thanh Vinh',
+            schedule: 'Thứ 4 - 07:00-11:00 (Tiết 7-11)',
+            location: 'Phòng 15-03 (Phòng máy 15)',
             status: 'active',
-            joinedAt: '2024-01-20',
+            joinedAt: '2024-09-01',
             totalStudents: 38,
-            description: 'Học về SQL, MySQL, MongoDB'
+            description: 'Thực hành phát triển phần mềm với các công cụ mã nguồn mở'
           },
           {
             id: 3,
-            name: 'Mạng máy tính',
+            name: 'Lịch sử Đảng cộng sản Việt Nam',
             code: '111100001111', // 12-digit binary
-            teacher: 'ThS. Trần Văn Nam',
-            schedule: 'Thứ 4, 6 - 10:00-12:00',
-            location: 'Phòng C303',
-            status: 'pending',
-            joinedAt: '2024-02-01',
-            totalStudents: 42,
-            description: 'Học về TCP/IP, HTTP, WebSocket'
+            teacher: 'GV: Đinh Cao Tín',
+            schedule: 'Thứ 5 - 06:45-08:15 (Tiết 4-6)',
+            location: 'Phòng D4-04 (Hội trường Khu D)',
+            status: 'active',
+            joinedAt: '2024-09-01',
+            totalStudents: 120,
+            description: 'Học về lịch sử hình thành và phát triển của Đảng Cộng sản Việt Nam'
+          },
+          {
+            id: 4,
+            name: 'Lập trình thiết bị di động',
+            code: '100110011001', // 12-digit binary
+            teacher: 'GV: Đoàn Chí Trung',
+            schedule: 'Thứ 6 - 07:00-11:00 (Tiết 7-11)',
+            location: 'Phòng 14-02 (Phòng máy 8)',
+            status: 'active',
+            joinedAt: '2024-09-01',
+            totalStudents: 35,
+            description: 'Phát triển ứng dụng di động trên Android và iOS'
+          },
+          {
+            id: 5,
+            name: 'Pháp luật về công nghệ thông tin',
+            code: '010101010101', // 12-digit binary
+            teacher: 'GV: Trần Minh Tâm',
+            schedule: 'Thứ 7 - 06:45-08:15 (Tiết 1-3)',
+            location: 'Phòng T4-05 (Học đường)',
+            status: 'active',
+            joinedAt: '2024-09-01',
+            totalStudents: 85,
+            description: 'Tìm hiểu các quy định pháp lý trong lĩnh vực công nghệ thông tin'
           }
         ]
         

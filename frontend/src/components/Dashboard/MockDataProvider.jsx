@@ -34,13 +34,13 @@ export const MockDataProvider = ({ children, user }) => {
     const timer = setTimeout(() => {
       // Generate mock data based on user
       const mockStatistics = {
-        attendanceRate: Math.floor(Math.random() * 40) + 60, // 60-100%
-        totalClasses: Math.floor(Math.random() * 20) + 5, // 5-25 classes
-        averageGrade: Math.floor(Math.random() * 20) + 70, // 70-90
-        thisWeekAttendance: Math.floor(Math.random() * 5) + 1, // 1-6 classes this week
-        gpa: Math.random() * 2 + 2.5, // 2.5-4.5 GPA
-        creditsEarned: Math.floor(Math.random() * 60) + 20, // 20-80 credits
-        creditsRemaining: Math.floor(Math.random() * 40) + 20 // 20-60 credits remaining
+        attendanceRate: Math.floor(Math.random() * 20) + 75, // 75-95%
+        totalClasses: 5, // 5 môn học cố định
+        averageGrade: Math.floor(Math.random() * 15) + 80, // 80-95 (hệ 100)
+        thisWeekAttendance: Math.floor(Math.random() * 3) + 3, // 3-5 tiết trong tuần
+        gpa: (Math.random() * 1.5 + 3.0).toFixed(2), // 3.0-4.5 GPA
+        creditsEarned: Math.floor(Math.random() * 20) + 45, // 45-65 tín chỉ
+        creditsRemaining: Math.floor(Math.random() * 15) + 20 // 20-35 tín chỉ còn lại
       }
 
       const mockAttendanceRecords = Array.from({ length: Math.floor(Math.random() * 10) + 5 }, (_, i) => ({
@@ -53,26 +53,64 @@ export const MockDataProvider = ({ children, user }) => {
         status: Math.random() > 0.2 ? 'present' : Math.random() > 0.5 ? 'absent' : 'late'
       }))
 
-      const mockGrades = Array.from({ length: Math.floor(Math.random() * 8) + 3 }, (_, i) => ({
+      const realSubjects = [
+        'Lập trình Python',
+        'Phát triển phần mềm mã nguồn mở',
+        'Lịch sử Đảng cộng sản Việt Nam',
+        'Lập trình thiết bị di động',
+        'Pháp luật về công nghệ thông tin'
+      ]
+      
+      const mockGrades = Array.from({ length: Math.floor(Math.random() * 8) + 5 }, (_, i) => ({
         id: i + 1,
-        subject: `Môn học ${i + 1}`,
+        subject: realSubjects[i % realSubjects.length],
         grade_type: ['midterm', 'final', 'assignment', 'quiz'][Math.floor(Math.random() * 4)],
         score: Math.floor(Math.random() * 30) + 70, // 70-100
         created_at: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString()
       }))
 
-      const mockSchedule = Array.from({ length: 5 }, (_, i) => ({
-        id: i + 1,
-        subject: `Môn học ${i + 1}`,
-        time: `${8 + i * 2}:00 - ${10 + i * 2}:00`,
-        day: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6'][i],
-        location: `Phòng ${Math.floor(Math.random() * 10) + 1}`
-      }))
+      const mockSchedule = [
+        {
+          id: 1,
+          subject: 'Lập trình Python',
+          time: '07:00 - 11:00',
+          day: 'Thứ 2',
+          location: 'Phòng 14-02 (Phòng máy 8)'
+        },
+        {
+          id: 2,
+          subject: 'Phát triển phần mềm mã nguồn mở',
+          time: '07:00 - 11:00',
+          day: 'Thứ 4',
+          location: 'Phòng 15-03 (Phòng máy 15)'
+        },
+        {
+          id: 3,
+          subject: 'Lịch sử Đảng cộng sản Việt Nam',
+          time: '06:45 - 08:15',
+          day: 'Thứ 5',
+          location: 'Phòng D4-04 (Hội trường Khu D)'
+        },
+        {
+          id: 4,
+          subject: 'Lập trình thiết bị di động',
+          time: '07:00 - 11:00',
+          day: 'Thứ 6',
+          location: 'Phòng 14-02 (Phòng máy 8)'
+        },
+        {
+          id: 5,
+          subject: 'Pháp luật về công nghệ thông tin',
+          time: '06:45 - 08:15',
+          day: 'Thứ 7',
+          location: 'Phòng T4-05 (Học đường)'
+        }
+      ]
 
       const mockAssignments = Array.from({ length: Math.floor(Math.random() * 5) + 2 }, (_, i) => ({
         id: i + 1,
         title: `Bài tập ${i + 1}`,
-        subject: `Môn học ${Math.floor(Math.random() * 5) + 1}`,
+        subject: realSubjects[Math.floor(Math.random() * realSubjects.length)],
         dueDate: new Date(Date.now() + Math.random() * 14 * 24 * 60 * 60 * 1000).toISOString(),
         status: ['pending', 'in_progress', 'completed'][Math.floor(Math.random() * 3)]
       }))

@@ -14,6 +14,7 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Container,
 } from '@mui/material'
 import {
   Add,
@@ -24,11 +25,24 @@ import {
 } from '@mui/icons-material'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchGrades } from '../../store/slices/gradeSlice'
+import StudentGradesView from '../../components/Grades/StudentGradesView'
 
 const Grades = () => {
   const dispatch = useDispatch()
   const { grades, isLoading, error } = useSelector((state) => state.grades)
+  const { user } = useSelector((state) => state.auth)
+  const userRole = user?.role || 'student'
 
+  // For students, show StudentGradesView component
+  if (userRole === 'student') {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <StudentGradesView user={user} />
+      </Container>
+    )
+  }
+
+  // For admin/teacher, show the original grade management interface
   React.useEffect(() => {
     dispatch(fetchGrades())
   }, [dispatch])
