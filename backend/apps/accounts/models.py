@@ -93,6 +93,13 @@ class User(AbstractUser):
     )
     
     # Teacher specific fields
+    teacher_id = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        unique=True,
+        verbose_name='Mã giảng viên'
+    )
     department = models.CharField(
         max_length=100, 
         blank=True, 
