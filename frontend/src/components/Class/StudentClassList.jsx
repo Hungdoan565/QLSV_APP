@@ -73,9 +73,9 @@ const StudentClassList = ({ user }) => {
             code: '110101101010', // 12-digit binary
             teacher: 'GV: Đặng Mạnh Huy',
             schedule: 'Thứ 2 - 07:00-11:00 (Tiết 7-11)',
-            location: 'Phòng 14-02 (Phòng máy 8)',
+            location: 'Phòng I4-02 (Phòng máy 8)',
             status: 'active',
-            joinedAt: '2024-09-01',
+            joinedAt: '2025-09-01',
             totalStudents: 42,
             description: 'Học lập trình Python cơ bản và nâng cao, thực hành trên máy tính'
           },
@@ -85,9 +85,9 @@ const StudentClassList = ({ user }) => {
             code: '101010101010', // 12-digit binary
             teacher: 'GV: Võ Thanh Vinh',
             schedule: 'Thứ 4 - 07:00-11:00 (Tiết 7-11)',
-            location: 'Phòng 15-03 (Phòng máy 15)',
+            location: 'Phòng I5-03 (Phòng máy 15)',
             status: 'active',
-            joinedAt: '2024-09-01',
+            joinedAt: '2025-09-01',
             totalStudents: 38,
             description: 'Thực hành phát triển phần mềm với các công cụ mã nguồn mở'
           },
@@ -99,7 +99,7 @@ const StudentClassList = ({ user }) => {
             schedule: 'Thứ 5 - 06:45-08:15 (Tiết 4-6)',
             location: 'Phòng D4-04 (Hội trường Khu D)',
             status: 'active',
-            joinedAt: '2024-09-01',
+            joinedAt: '2025-09-01',
             totalStudents: 120,
             description: 'Học về lịch sử hình thành và phát triển của Đảng Cộng sản Việt Nam'
           },
@@ -109,9 +109,9 @@ const StudentClassList = ({ user }) => {
             code: '100110011001', // 12-digit binary
             teacher: 'GV: Đoàn Chí Trung',
             schedule: 'Thứ 6 - 07:00-11:00 (Tiết 7-11)',
-            location: 'Phòng 14-02 (Phòng máy 8)',
+            location: 'Phòng I4-02 (Phòng máy 8)',
             status: 'active',
-            joinedAt: '2024-09-01',
+            joinedAt: '2025-09-01',
             totalStudents: 35,
             description: 'Phát triển ứng dụng di động trên Android và iOS'
           },
@@ -123,7 +123,7 @@ const StudentClassList = ({ user }) => {
             schedule: 'Thứ 7 - 06:45-08:15 (Tiết 1-3)',
             location: 'Phòng T4-05 (Học đường)',
             status: 'active',
-            joinedAt: '2024-09-01',
+            joinedAt: '2025-09-01',
             totalStudents: 85,
             description: 'Tìm hiểu các quy định pháp lý trong lĩnh vực công nghệ thông tin'
           }

@@ -13,6 +13,8 @@ import {
 import { useSelector } from 'react-redux'
 import classService from '../../services/classService'
 import StudentClassList from '../../components/Class/StudentClassList'
+import TeacherClassManagement from '../../components/Class/TeacherClassManagement'
+import { TeacherMockDataProvider } from '../../components/Dashboard/TeacherMockDataProvider'
 
 const Classes = () => {
   const { user } = useSelector((state) => state.auth)
@@ -20,15 +22,6 @@ const Classes = () => {
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-
-  // For students, show StudentClassList component
-  if (userRole === 'student') {
-    return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <StudentClassList user={user} />
-      </Container>
-    )
-  }
 
   const loadClasses = async () => {
     try {
@@ -57,13 +50,33 @@ const Classes = () => {
   }
 
   useEffect(() => {
-    if (userRole !== 'student') {
+    if (userRole === 'admin') {
       loadClasses()
+    } else {
+      setLoading(false)
     }
   }, [userRole])
 
   const handleRetry = () => {
     loadClasses()
+  }
+
+  // For students, show StudentClassList component
+  if (userRole === 'student') {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <StudentClassList user={user} />
+      </Container>
+    )
+  }
+
+  // For teachers, show TeacherClassManagement component
+  if (userRole === 'teacher') {
+    return (
+      <TeacherMockDataProvider user={user}>
+        <TeacherClassManagement />
+      </TeacherMockDataProvider>
+    )
   }
 
   return (

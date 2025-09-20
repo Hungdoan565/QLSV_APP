@@ -50,88 +50,87 @@ const getNavigationItems = (userRole) => {
     { 
       text: 'Trang chủ', 
       icon: <Home />, 
-      path: '/home',
-      roles: ['admin', 'teacher', 'student']
+      path: '/home'
     },
     { 
       text: 'Tổng quan', 
       icon: <Dashboard />, 
-      path: '/dashboard',
-      roles: ['admin', 'teacher', 'student']
+      path: '/dashboard'
     },
   ]
 
-  const adminItems = [
-    { 
-      text: 'Quản lý sinh viên', 
-      icon: <People />, 
-      path: '/students',
-      roles: ['admin']
-    },
-    { 
-      text: 'Quản lý lớp học', 
-      icon: <School />, 
-      path: '/classes',
-      roles: ['admin']
-    },
-    { 
-      text: 'Quản lý điểm số', 
-      icon: <Assessment />, 
-      path: '/grades',
-      roles: ['admin', 'teacher']
-    },
-    { 
-      text: 'Quản lý điểm danh', 
-      icon: <Assignment />, 
-      path: '/attendance',
-      roles: ['admin', 'teacher']
-    },
-  ]
+  // Role-specific items
+  if (userRole === 'admin') {
+    return [
+      ...baseItems,
+      { 
+        text: 'Quản lý sinh viên', 
+        icon: <People />, 
+        path: '/students'
+      },
+      { 
+        text: 'Quản lý lớp học', 
+        icon: <School />, 
+        path: '/classes'
+      },
+      { 
+        text: 'Quản lý điểm số', 
+        icon: <Assessment />, 
+        path: '/grades'
+      },
+      { 
+        text: 'Quản lý điểm danh', 
+        icon: <Assignment />, 
+        path: '/attendance'
+      },
+    ]
+  }
 
-  const teacherItems = [
-    { 
-      text: 'Lớp của tôi', 
-      icon: <School />, 
-      path: '/classes',
-      roles: ['teacher']
-    },
-    { 
-      text: 'Điểm danh lớp', 
-      icon: <Assignment />, 
-      path: '/attendance',
-      roles: ['teacher']
-    },
-  ]
+  if (userRole === 'teacher') {
+    return [
+      ...baseItems,
+      { 
+        text: 'Lớp của tôi', 
+        icon: <School />, 
+        path: '/classes'
+      },
+      { 
+        text: 'Quản lý điểm số', 
+        icon: <Assessment />, 
+        path: '/grades'
+      },
+      { 
+        text: 'Quản lý điểm danh', 
+        icon: <Assignment />, 
+        path: '/attendance'
+      },
+    ]
+  }
 
-  const studentItems = [
+  // Default to student
+  return [
+    ...baseItems,
     { 
       text: 'Lớp học', 
       icon: <School />, 
-      path: '/classes',
-      roles: ['student']
+      path: '/classes'
     },
     { 
       text: 'Điểm số', 
       icon: <Assessment />, 
-      path: '/grades',
-      roles: ['student']
+      path: '/grades'
     },
     { 
       text: 'Thời khóa biểu', 
       icon: <Schedule />, 
-      path: '/schedule',
-      roles: ['student']
+      path: '/schedule'
     },
     { 
       text: 'Điểm danh', 
       icon: <Assignment />, 
-      path: '/attendance',
-      roles: ['student']
+      path: '/attendance'
     },
   ]
-
-  const allItems = [...baseItems, ...adminItems, ...teacherItems, ...studentItems]
-  return allItems.filter(item => item.roles.includes(userRole || 'student'))
 }
 
 const Layout = ({ children }) => {

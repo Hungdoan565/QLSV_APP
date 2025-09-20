@@ -2,7 +2,7 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import { Box, CircularProgress, Typography } from '@mui/material'
 import ProperAdminDashboard from './ProperAdminDashboard'
-import ProperTeacherDashboard from './ProperTeacherDashboard'
+import ProductionTeacherDashboard from './ProductionTeacherDashboard'
 import ProductionStudentDashboard from './ProductionStudentDashboard'
 
 const Dashboard = () => {
@@ -38,7 +38,7 @@ const Dashboard = () => {
     case 'admin':
       return <ProperAdminDashboard />
     case 'teacher':
-      return <ProperTeacherDashboard />
+      return <ProductionTeacherDashboard />
     case 'student':
     default:
       return <ProductionStudentDashboard />

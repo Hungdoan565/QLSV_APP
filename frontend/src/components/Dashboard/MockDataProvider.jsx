@@ -43,15 +43,47 @@ export const MockDataProvider = ({ children, user }) => {
         creditsRemaining: Math.floor(Math.random() * 15) + 20 // 20-35 tín chỉ còn lại
       }
 
-      const mockAttendanceRecords = Array.from({ length: Math.floor(Math.random() * 10) + 5 }, (_, i) => ({
-        id: i + 1,
-        session: {
-          session_name: `Buổi học ${i + 1}`,
-          location: `Phòng ${Math.floor(Math.random() * 10) + 1}`
-        },
-        check_in_time: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        status: Math.random() > 0.2 ? 'present' : Math.random() > 0.5 ? 'absent' : 'late'
-      }))
+      const attendanceSessions = [
+        // Lập trình Python - Thứ 2
+        { subject: 'Lập trình Python', teacher: 'GV: Đặng Mạnh Huy', location: 'Phòng 14-02 (Phòng máy 8)', day: 'Thứ 2', time: '07:00-11:00' },
+        // Phát triển phần mềm mã nguồn mở - Thứ 4  
+        { subject: 'Phát triển phần mềm mã nguồn mở', teacher: 'GV: Võ Thanh Vinh', location: 'Phòng 15-03 (Phòng máy 15)', day: 'Thứ 4', time: '07:00-11:00' },
+        // Lịch sử Đảng - Thứ 5
+        { subject: 'Lịch sử Đảng cộng sản Việt Nam', teacher: 'GV: Đinh Cao Tín', location: 'Phòng D4-04 (Hội trường Khu D)', day: 'Thứ 5', time: '06:45-08:15' },
+        // Lập trình thiết bị di động - Thứ 6
+        { subject: 'Lập trình thiết bị di động', teacher: 'GV: Đoàn Chí Trung', location: 'Phòng 14-02 (Phòng máy 8)', day: 'Thứ 6', time: '07:00-11:00' },
+        // Pháp luật CNTT - Thứ 7
+        { subject: 'Pháp luật về công nghệ thông tin', teacher: 'GV: Trần Minh Tâm', location: 'Phòng T4-05 (Học đường)', day: 'Thứ 7', time: '06:45-08:15' }
+      ]
+
+      const mockAttendanceRecords = Array.from({ length: Math.floor(Math.random() * 15) + 10 }, (_, i) => {
+        const sessionIndex = i % attendanceSessions.length
+        const session = attendanceSessions[sessionIndex]
+        const weekOffset = Math.floor(i / attendanceSessions.length)
+        
+        // Tạo ngày dựa trên thứ trong tuần
+        const today = new Date()
+        const dayMap = { 'Thứ 2': 1, 'Thứ 3': 2, 'Thứ 4': 3, 'Thứ 5': 4, 'Thứ 6': 5, 'Thứ 7': 6 }
+        const targetDay = dayMap[session.day]
+        const currentDay = today.getDay()
+        
+        const sessionDate = new Date(today)
+        sessionDate.setDate(today.getDate() - (currentDay - targetDay) - (weekOffset * 7))
+        
+        return {
+          id: i + 1,
+          session: {
+            session_name: `${session.subject} - Tuần ${weekOffset + 1}`,
+            location: session.location,
+            subject: session.subject,
+            teacher: session.teacher,
+            time: session.time,
+            day: session.day
+          },
+          check_in_time: sessionDate.toISOString(),
+          status: Math.random() > 0.15 ? 'present' : Math.random() > 0.6 ? 'absent' : 'late'
+        }
+      }).sort((a, b) => new Date(b.check_in_time) - new Date(a.check_in_time))
 
       const realSubjects = [
         'Lập trình Python',

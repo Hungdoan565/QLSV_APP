@@ -758,9 +758,10 @@ const ProductionStudentDashboard = () => {
               <Table>
                 <TableHead>
                   <TableRow>
+                    <TableCell>Môn học</TableCell>
                     <TableCell>Buổi học</TableCell>
                     <TableCell>Ngày</TableCell>
-                    <TableCell>Giờ</TableCell>
+                    <TableCell>Thời gian</TableCell>
                     <TableCell>Trạng thái</TableCell>
                     <TableCell>Địa điểm</TableCell>
                   </TableRow>
@@ -768,17 +769,46 @@ const ProductionStudentDashboard = () => {
                 <TableBody>
                   {displayData.attendanceRecords.map((record) => (
                     <TableRow key={record.id}>
-                      <TableCell>{record.session?.session_name || 'Unknown'}</TableCell>
-                      <TableCell>{new Date(record.check_in_time).toLocaleDateString()}</TableCell>
-                      <TableCell>{new Date(record.check_in_time).toLocaleTimeString()}</TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            {record.session?.subject || 'Unknown Subject'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {record.session?.teacher || 'Unknown Teacher'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {record.session?.session_name || 'Unknown Session'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {new Date(record.check_in_time).toLocaleDateString('vi-VN')}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {record.session?.day || 'Unknown Day'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {record.session?.time || new Date(record.check_in_time).toLocaleTimeString()}
+                        </Typography>
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={record.status === 'present' ? 'Có mặt' : record.status === 'absent' ? 'Vắng mặt' : record.status === 'late' ? 'Đi muộn' : record.status}
-                          color={record.status === 'present' ? 'success' : 'error'}
+                          color={record.status === 'present' ? 'success' : record.status === 'late' ? 'warning' : 'error'}
                           size="small"
                         />
                       </TableCell>
-                      <TableCell>{record.session?.location || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" noWrap>
+                          {record.session?.location || 'N/A'}
+                        </Typography>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
