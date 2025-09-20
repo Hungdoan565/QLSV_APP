@@ -10,7 +10,11 @@ export class AuthUtils {
    * Check if user has specific role
    */
   static hasRole(user, role) {
-    return user?.role === role && user?.account_status === ACCOUNT_STATUS.ACTIVE;
+    // If user doesn't have role/account_status, assume student with active status
+    const userRole = user?.role || 'student'
+    const userStatus = user?.account_status || 'active'
+    
+    return userRole === role && userStatus === ACCOUNT_STATUS.ACTIVE;
   }
 
   /**
@@ -45,14 +49,16 @@ export class AuthUtils {
    * Check if user account is active
    */
   static isAccountActive(user) {
-    return user?.account_status === ACCOUNT_STATUS.ACTIVE;
+    const userStatus = user?.account_status || 'active'
+    return userStatus === ACCOUNT_STATUS.ACTIVE;
   }
 
   /**
    * Check if user account needs approval
    */
   static needsApproval(user) {
-    return user?.account_status === ACCOUNT_STATUS.PENDING;
+    const userStatus = user?.account_status || 'active'
+    return userStatus === ACCOUNT_STATUS.PENDING;
   }
 
   /**

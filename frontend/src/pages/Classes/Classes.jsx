@@ -12,12 +12,23 @@ import {
 } from '@mui/material'
 import { useSelector } from 'react-redux'
 import classService from '../../services/classService'
+import StudentClassList from '../../components/Class/StudentClassList'
 
 const Classes = () => {
   const { user } = useSelector((state) => state.auth)
+  const userRole = user?.role || 'student'
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // For students, show StudentClassList component
+  if (userRole === 'student') {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <StudentClassList user={user} />
+      </Container>
+    )
+  }
 
   const loadClasses = async () => {
     try {
@@ -46,8 +57,10 @@ const Classes = () => {
   }
 
   useEffect(() => {
-    loadClasses()
-  }, [])
+    if (userRole !== 'student') {
+      loadClasses()
+    }
+  }, [userRole])
 
   const handleRetry = () => {
     loadClasses()

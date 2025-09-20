@@ -33,6 +33,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 
 // Error Boundary
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
+import EnhancedErrorBoundary from './components/ErrorBoundary/EnhancedErrorBoundary'
 
 // Redux actions
 import { getProfile } from './store/slices/authSlice'
@@ -72,7 +73,7 @@ const App = () => {
   }
 
   return (
-    <ErrorBoundary>
+    <EnhancedErrorBoundary>
       <SnackbarProvider maxSnack={3}>
         <Routes>
           {/* Public Routes - Only accessible when NOT authenticated */}
@@ -120,7 +121,7 @@ const App = () => {
           } />
 
           <Route path="/classes" element={
-            <ProtectedRoute requiredRole={['admin', 'teacher']}>
+            <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
               <Layout>
                 <Classes />
               </Layout>
@@ -158,7 +159,7 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </SnackbarProvider>
-    </ErrorBoundary>
+    </EnhancedErrorBoundary>
   )
 }
 

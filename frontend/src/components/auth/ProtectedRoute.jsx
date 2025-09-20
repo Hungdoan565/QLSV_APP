@@ -10,7 +10,10 @@ const ProtectedRoute = ({
   requireAdmin = false, 
   requireTeacher = false,
   redirectTo = '/login' 
-}) => {  const { user, isLoading, isAuthenticated } = useSelector((state) => state.auth);
+}) => {  
+  const { user, isLoading, isAuthenticated } = useSelector((state) => state.auth);
+  
+  console.log('🔒 ProtectedRoute - User:', user, 'IsAuth:', isAuthenticated, 'RequiredRole:', requiredRole, 'RequireAdmin:', requireAdmin, 'RequireTeacher:', requireTeacher);
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
@@ -38,40 +41,64 @@ const ProtectedRoute = ({
   }
 
   // Check admin access
-  if (requireAdmin && !AuthUtils.canAccessAdminFeatures(user)) {
-    return <Navigate to="/unauthorized" replace />;
+  if (requireAdmin) {
+    const userRole = user?.role || 'student'
+    console.log('🔒 Checking admin access - userRole:', userRole, 'requireAdmin:', requireAdmin)
+    if (userRole !== 'admin') {
+      console.log('🔒 Admin access denied - redirecting to unauthorized')
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   // Check teacher access (admin can also access teacher routes)
-  if (requireTeacher && !AuthUtils.hasAnyRole(user, ['admin', 'teacher'])) {
-    return <Navigate to="/unauthorized" replace />;
+  if (requireTeacher) {
+    const userRole = user?.role || 'student'
+    console.log('🔒 Checking teacher access - userRole:', userRole, 'requireTeacher:', requireTeacher)
+    if (!['admin', 'teacher'].includes(userRole)) {
+      console.log('🔒 Teacher access denied - redirecting to unauthorized')
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   // Check specific role requirement
   if (requiredRole) {
     if (Array.isArray(requiredRole)) {
       // Check if user has any of the required roles
-      if (!AuthUtils.hasAnyRole(user, requiredRole)) {
+      // If user doesn't have role, assume student (default)
+      const userRole = user?.role || 'student'
+      console.log('🔒 Checking array role - userRole:', userRole, 'requiredRole:', requiredRole, 'includes:', requiredRole.includes(userRole))
+      if (!requiredRole.includes(userRole)) {
+        console.log('🔒 Array role access denied - redirecting to unauthorized')
         return <Navigate to="/unauthorized" replace />;
       }
     } else {
       // Check single role
-      if (!AuthUtils.hasRole(user, requiredRole)) {
+      // If user doesn't have role, assume student (default)
+      const userRole = user?.role || 'student'
+      console.log('🔒 Checking single role - userRole:', userRole, 'requiredRole:', requiredRole, 'match:', userRole === requiredRole)
+      if (userRole !== requiredRole) {
+        console.log('🔒 Single role access denied - redirecting to unauthorized')
         return <Navigate to="/unauthorized" replace />;
       }
     }
   }
 
   // Check account status
-  if (AuthUtils.needsApproval(user)) {
+  const userStatus = user?.account_status || 'active'
+  console.log('🔒 Checking account status - userStatus:', userStatus)
+  
+  if (userStatus === 'pending') {
+    console.log('🔒 Account pending - redirecting to pending approval')
     return <Navigate to="/pending-approval" replace />;
   }
 
-  if (user?.account_status === 'suspended') {
+  if (userStatus === 'suspended') {
+    console.log('🔒 Account suspended - redirecting to unauthorized')
     return <Navigate to="/unauthorized" replace />;
   }
 
-  if (user?.account_status === 'rejected') {
+  if (userStatus === 'rejected') {
+    console.log('🔒 Account rejected - redirecting to account rejected')
     return <Navigate to="/account-rejected" replace />;
   }
 

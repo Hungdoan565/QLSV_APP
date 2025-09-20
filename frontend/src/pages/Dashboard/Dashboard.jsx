@@ -32,15 +32,16 @@ const Dashboard = () => {
   }
 
   // Role-based dashboard rendering
-  switch (user.role) {
+  const userRole = user.role || 'student' // Default to student if no role
+  
+  switch (userRole) {
     case 'admin':
       return <ProperAdminDashboard />
     case 'teacher':
       return <ProperTeacherDashboard />
     case 'student':
-      return <ProductionStudentDashboard />
     default:
-      return <ProductionStudentDashboard /> // Default to student dashboard
+      return <ProductionStudentDashboard />
   }
 }
 
