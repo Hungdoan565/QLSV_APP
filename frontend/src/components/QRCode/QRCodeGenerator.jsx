@@ -1,590 +1,398 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
+  Card,
+  CardContent,
+  CardActions,
+  Button,
   Box,
   Typography,
-  Button,
+  Alert,
+  CircularProgress,
+  Chip,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
-  Stack,
-  IconButton,
-  Paper,
-  Divider,
   LinearProgress,
-  Alert,
-  Switch,
-  FormControlLabel,
-  Tooltip,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Tooltip
 } from '@mui/material'
 import {
-  QrCode2,
-  Close,
-  Download,
-  Share,
-  Print,
-  Refresh,
-  Timer,
+  QrCode as QrCodeIcon,
+  Refresh as RefreshIcon,
+  Security as SecurityIcon,
+  Schedule as ScheduleIcon,
+  School as SchoolIcon,
+  Download as DownloadIcon,
+  Share as ShareIcon,
+  Stop as StopIcon,
+  PlayArrow as PlayArrowIcon,
+  Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
+  Close as CloseIcon,
+  LocationOn as LocationIcon
 } from '@mui/icons-material'
-import QRCode from 'react-qr-code'
+import QRCodeService from '../../services/qrCodeService'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNotification } from '../Notification/NotificationProvider'
-import attendanceService from '../../services/attendanceService'
 
-const QRCodeGenerator = ({
-  open,
-  onClose,
-  sessionData,
-  onSessionUpdate,
-  title = "QR Code Điểm Danh"
-}) => {
-  const [qrCodeData, setQrCodeData] = useState('')
+const QRCodeGenerator = ({ session, onQRGenerated, onQRRevoked }) => {
+  const [qrData, setQrData] = useState(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [sessionStats, setSessionStats] = useState({
-    totalStudents: 0,
-    presentCount: 0,
-    attendanceRecords: []
-  })
-  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [isRevoking, setIsRevoking] = useState(false)
+  const [error, setError] = useState(null)
+  const [qrStatus, setQrStatus] = useState(null)
   const [timeRemaining, setTimeRemaining] = useState(null)
-  
-  const qrRef = useRef(null)
-  const refreshInterval = useRef(null)
-  const timerInterval = useRef(null)
-  const { showSuccess, showError, showInfo } = useNotification()
+  const [isActive, setIsActive] = useState(false)
+  const [showQRDialog, setShowQRDialog] = useState(false)
 
-  // Generate QR code when dialog opens
+  // Check QR status on component mount
   useEffect(() => {
-    if (open && sessionData) {
-      generateQRCode()
-      startRealTimeUpdates()
-      startTimer()
+    if (session?.id) {
+      checkQRStatus()
     }
-    return () => {
-      stopRealTimeUpdates()
-      stopTimer()
-    }
-  }, [open, sessionData])
+  }, [session?.id])
 
-  // Auto refresh QR code every 5 minutes for security
+  // Update time remaining every second
   useEffect(() => {
-    if (autoRefresh && open && sessionData) {
+    if (qrData?.expiresAt) {
       const interval = setInterval(() => {
-        generateQRCode()
-      }, 5 * 60 * 1000) // 5 minutes
+        const remaining = QRCodeService.formatTimeRemaining(qrData.expiresAt)
+        setTimeRemaining(remaining)
+        
+        if (QRCodeService.isExpired(qrData.expiresAt)) {
+          setIsActive(false)
+          clearInterval(interval)
+        }
+      }, 1000)
+
       return () => clearInterval(interval)
     }
-  }, [autoRefresh, open, sessionData])
+  }, [qrData?.expiresAt])
 
-  const generateQRCode = async () => {
-    if (!sessionData?.id) return
-    
-    setIsGenerating(true)
+  const checkQRStatus = useCallback(async () => {
     try {
-      const qrData = attendanceService.generateQRCodeData(sessionData.id)
-      setQrCodeData(qrData)
-      
-      // Update session with new QR code
-      if (onSessionUpdate) {
-        onSessionUpdate({
-          ...sessionData,
-          qr_code_data: qrData,
-          last_qr_update: new Date().toISOString()
-        })
-      }
-      
-      showInfo('QR Code đã được làm mới')
+      const status = await QRCodeService.getQRStatus(session.id)
+      setQrStatus(status.qrStatus)
+      setIsActive(status.qrStatus.active)
     } catch (error) {
-      console.error('QR Generation error:', error)
-      showError('Không thể tạo QR Code')
+      console.error('Failed to check QR status:', error)
+    }
+  }, [session?.id])
+
+  const generateQRCode = useCallback(async () => {
+    try {
+      setIsGenerating(true)
+      setError(null)
+
+      const result = await QRCodeService.generateQRCode({
+        session_id: session.id,
+        session_name: session.session_name
+      })
+
+      setQrData(result)
+      setIsActive(true)
+      setShowQRDialog(true)
+      onQRGenerated?.(result)
+
+    } catch (error) {
+      console.error('QR generation failed:', error)
+      setError(error.message)
     } finally {
       setIsGenerating(false)
     }
-  }
+  }, [session, onQRGenerated])
 
-  const startRealTimeUpdates = () => {
-    if (!sessionData?.id) return
-    
-    // Subscribe to real-time attendance updates
-    const unsubscribe = attendanceService.subscribeToAttendanceUpdates(
-      sessionData.id,
-      (payload) => {
-        console.log('Real-time attendance update:', payload)
-        loadSessionStats()
-      }
-    )
-
-    // Initial load
-    loadSessionStats()
-    
-    // Set up periodic refresh
-    refreshInterval.current = setInterval(loadSessionStats, 30000) // 30 seconds
-    
-    return unsubscribe
-  }
-
-  const stopRealTimeUpdates = () => {
-    if (refreshInterval.current) {
-      clearInterval(refreshInterval.current)
-      refreshInterval.current = null
-    }
-  }
-
-  const startTimer = () => {
-    if (!sessionData?.end_time) return
-    
-    const updateTimer = () => {
-      const now = new Date()
-      const endTime = new Date(`${sessionData.session_date}T${sessionData.end_time}`)
-      const diff = endTime - now
-      
-      if (diff > 0) {
-        setTimeRemaining(diff)
-      } else {
-        setTimeRemaining(0)
-        stopTimer()
-      }
-    }
-    
-    updateTimer()
-    timerInterval.current = setInterval(updateTimer, 1000)
-  }
-
-  const stopTimer = () => {
-    if (timerInterval.current) {
-      clearInterval(timerInterval.current)
-      timerInterval.current = null
-    }
-  }
-
-  const loadSessionStats = async () => {
-    if (!sessionData?.id) return
-    
+  const revokeQRCode = useCallback(async () => {
     try {
-      const records = await attendanceService.getAttendanceRecords(sessionData.id)
-      setSessionStats({
-        totalStudents: sessionData.total_students || 0,
-        presentCount: records.length,
-        attendanceRecords: records
-      })
+      setIsRevoking(true)
+      setError(null)
+
+      await QRCodeService.revokeQRCode(session.id)
+      
+      setQrData(null)
+      setIsActive(false)
+      setShowQRDialog(false)
+      onQRRevoked?.()
+
     } catch (error) {
-      console.error('Load stats error:', error)
+      console.error('QR revocation failed:', error)
+      setError(error.message)
+    } finally {
+      setIsRevoking(false)
+    }
+  }, [session?.id, onQRRevoked])
+
+  const downloadQRCode = () => {
+    if (qrData?.qrCode) {
+      const link = document.createElement('a')
+      link.href = `data:image/png;base64,${qrData.qrCode}`
+      link.download = `qr-code-session-${session.id}.png`
+      link.click()
     }
   }
 
-  const handleDownloadQR = () => {
-    if (!qrRef.current) return
-    
-    try {
-      const svg = qrRef.current.querySelector('svg')
-      const svgData = new XMLSerializer().serializeToString(svg)
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
-      
-      img.onload = () => {
-        canvas.width = img.width
-        canvas.height = img.height
-        ctx.drawImage(img, 0, 0)
-        
-        const link = document.createElement('a')
-        link.download = `qr-code-${sessionData.subject || 'attendance'}-${Date.now()}.png`
-        link.href = canvas.toDataURL()
-        link.click()
-        
-        showSuccess('QR Code đã được tải xuống')
-      }
-      
-      img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
-    } catch (error) {
-      console.error('Download error:', error)
-      showError('Không thể tải xuống QR Code')
-    }
-  }
-
-  const handlePrintQR = () => {
-    const printWindow = window.open('', '_blank')
-    const qrElement = qrRef.current
-    
-    if (qrElement && printWindow) {
-      const qrHtml = qrElement.outerHTML
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>QR Code Điểm Danh - ${sessionData.subject}</title>
-            <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                text-align: center; 
-                padding: 20px; 
-              }
-              .qr-container { margin: 20px 0; }
-              .session-info { margin: 20px 0; }
-              .footer { margin-top: 40px; font-size: 12px; color: #666; }
-            </style>
-          </head>
-          <body>
-            <h1>QR Code Điểm Danh</h1>
-            <div class="session-info">
-              <h2>${sessionData.subject}</h2>
-              <p>Lớp: ${sessionData.class_name || 'N/A'}</p>
-              <p>Ngày: ${new Date(sessionData.session_date).toLocaleDateString('vi-VN')}</p>
-              <p>Thời gian: ${sessionData.start_time} - ${sessionData.end_time}</p>
-            </div>
-            <div class="qr-container">
-              ${qrHtml}
-            </div>
-            <div class="footer">
-              <p>Sinh viên vui lòng quét QR code này để điểm danh</p>
-              <p>Được tạo lúc: ${new Date().toLocaleString('vi-VN')}</p>
-            </div>
-          </body>
-        </html>
-      `)
-      printWindow.document.close()
-      printWindow.print()
-      
-      showSuccess('Đang in QR Code...')
-    }
-  }
-
-  const handleShareQR = async () => {
-    if (navigator.share && qrCodeData) {
+  const shareQRCode = async () => {
+    if (qrData?.qrCode && navigator.share) {
       try {
-        await navigator.share({
-          title: `QR Code Điểm Danh - ${sessionData.subject}`,
-          text: `Quét QR code này để điểm danh cho môn ${sessionData.subject}`,
-          url: window.location.href
+        const blob = await fetch(`data:image/png;base64,${qrData.qrCode}`)
+          .then(res => res.blob())
+        
+        const file = new File([blob], `qr-code-session-${session.id}.png`, {
+          type: 'image/png'
         })
-        showSuccess('Đã chia sẻ QR Code')
+
+        await navigator.share({
+          title: `QR Code for ${session.session_name}`,
+          text: `Attendance QR Code for ${session.session_name}`,
+          files: [file]
+        })
       } catch (error) {
-        // Fallback to copy to clipboard
-        handleCopyQR()
+        console.error('Share failed:', error)
       }
-    } else {
-      handleCopyQR()
     }
   }
 
-  const handleCopyQR = async () => {
-    try {
-      await navigator.clipboard.writeText(qrCodeData)
-      showSuccess('Đã sao chép mã QR vào clipboard')
-    } catch (error) {
-      showError('Không thể sao chép mã QR')
-    }
+  const getStatusColor = () => {
+    if (!isActive) return 'default'
+    if (timeRemaining === 'Expired') return 'error'
+    if (timeRemaining && timeRemaining.includes('s')) return 'warning'
+    return 'success'
   }
 
-  const formatTimeRemaining = (ms) => {
-    if (!ms || ms <= 0) return 'Đã kết thúc'
-    
-    const hours = Math.floor(ms / (1000 * 60 * 60))
-    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60))
-    const seconds = Math.floor((ms % (1000 * 60)) / 1000)
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-    }
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
-
-  const getAttendanceProgress = () => {
-    if (sessionStats.totalStudents === 0) return 0
-    return (sessionStats.presentCount / sessionStats.totalStudents) * 100
+  const getStatusIcon = () => {
+    if (!isActive) return <StopIcon />
+    if (timeRemaining === 'Expired') return <WarningIcon />
+    return <CheckCircleIcon />
   }
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          minHeight: '600px'
-        }
-      }}
-    >
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <QrCode2 color="primary" sx={{ fontSize: 28 }} />
-            <Box>
-              <Typography variant="h6" fontWeight={600}>
-                {title}
-              </Typography>
-              {sessionData && (
-                <Typography variant="body2" color="text.secondary">
-                  {sessionData.subject} • {sessionData.class_name}
-                </Typography>
-              )}
-            </Box>
+    <>
+      <Card elevation={2}>
+        <CardContent>
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+            <Typography variant="h6" component="h2">
+              QR Code Attendance
+            </Typography>
+            <Chip
+              icon={getStatusIcon()}
+              label={isActive ? 'Active' : 'Inactive'}
+              color={getStatusColor()}
+              size="small"
+            />
           </Box>
-          <IconButton onClick={onClose} edge="end">
-            <Close />
-          </IconButton>
-        </Box>
-      </DialogTitle>
 
-      <DialogContent sx={{ pt: 2 }}>
-        <Grid container spacing={3}>
-          {/* QR Code Display */}
-          <Grid item xs={12} md={6}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  QR Code Điểm Danh
-                </Typography>
-                
-                {isGenerating ? (
-                  <Box sx={{ p: 4 }}>
-                    <LinearProgress sx={{ mb: 2 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Đang tạo QR Code...
-                    </Typography>
-                  </Box>
-                ) : qrCodeData ? (
-                  <motion.div
-                    ref={qrRef}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Paper 
-                      elevation={0}
-                      sx={{ 
-                        p: 2, 
-                        border: '2px solid', 
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        display: 'inline-block',
-                        mb: 2
-                      }}
-                    >
-                      <QRCode
-                        value={qrCodeData}
-                        size={200}
-                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                        viewBox="0 0 256 256"
-                      />
-                    </Paper>
-                  </motion.div>
-                ) : (
-                  <Alert severity="warning">
-                    Không thể tạo QR Code
-                  </Alert>
-                )}
-
-                {/* Action Buttons */}
-                <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2 }}>
-                  <Tooltip title="Tải xuống">
-                    <IconButton 
-                      onClick={handleDownloadQR}
-                      disabled={!qrCodeData}
-                      color="primary"
-                    >
-                      <Download />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="In QR Code">
-                    <IconButton 
-                      onClick={handlePrintQR}
-                      disabled={!qrCodeData}
-                      color="primary"
-                    >
-                      <Print />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Chia sẻ">
-                    <IconButton 
-                      onClick={handleShareQR}
-                      disabled={!qrCodeData}
-                      color="primary"
-                    >
-                      <Share />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Làm mới QR Code">
-                    <IconButton 
-                      onClick={generateQRCode}
-                      disabled={isGenerating}
-                      color="primary"
-                    >
-                      <Refresh />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-
-                {/* Auto refresh toggle */}
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={autoRefresh}
-                      onChange={(e) => setAutoRefresh(e.target.checked)}
-                      size="small"
-                    />
-                  }
-                  label="Tự động làm mới (5 phút)"
-                  sx={{ mt: 2 }}
+          {session && (
+            <List dense>
+              <ListItem>
+                <ListItemIcon>
+                  <SchoolIcon />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Session" 
+                  secondary={session.session_name}
                 />
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Session Info & Stats */}
-          <Grid item xs={12} md={6}>
-            <Stack spacing={3}>
-              {/* Session Details */}
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Thông tin phiên điểm danh
-                  </Typography>
-                  <Stack spacing={2}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Môn học
-                      </Typography>
-                      <Typography variant="body1" fontWeight={600}>
-                        {sessionData?.subject || 'N/A'}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Thời gian
-                      </Typography>
-                      <Typography variant="body1">
-                        {sessionData?.start_time} - {sessionData?.end_time}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Ngày học
-                      </Typography>
-                      <Typography variant="body1">
-                        {sessionData?.session_date && 
-                          new Date(sessionData.session_date).toLocaleDateString('vi-VN')
-                        }
-                      </Typography>
-                    </Box>
-                    {timeRemaining !== null && (
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Thời gian còn lại
-                        </Typography>
-                        <Chip
-                          icon={<Timer />}
-                          label={formatTimeRemaining(timeRemaining)}
-                          color={timeRemaining > 0 ? 'success' : 'error'}
-                          variant="outlined"
-                        />
-                      </Box>
-                    )}
-                  </Stack>
-                </CardContent>
-              </Card>
-
-              {/* Attendance Stats */}
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Thống kê điểm danh
-                  </Typography>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Tỷ lệ tham dự
-                      </Typography>
-                      <Typography variant="body2" fontWeight={600}>
-                        {sessionStats.presentCount}/{sessionStats.totalStudents} 
-                        ({Math.round(getAttendanceProgress())}%)
-                      </Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={getAttendanceProgress()}
-                      sx={{ height: 8, borderRadius: 4 }}
-                    />
-                  </Box>
-
-                  <Stack direction="row" spacing={2} justifyContent="center">
-                    <Chip
-                      label={`${sessionStats.presentCount} Có mặt`}
-                      color="success"
-                      variant="outlined"
-                      size="small"
-                    />
-                    <Chip
-                      label={`${sessionStats.totalStudents - sessionStats.presentCount} Vắng mặt`}
-                      color="error"
-                      variant="outlined"
-                      size="small"
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-
-              {/* Recent Attendance */}
-              {sessionStats.attendanceRecords.length > 0 && (
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Điểm danh gần đây
-                    </Typography>
-                    <Stack spacing={1} sx={{ maxHeight: '200px', overflow: 'auto' }}>
-                      {sessionStats.attendanceRecords
-                        .slice(-5) // Show last 5 records
-                        .reverse()
-                        .map((record, index) => (
-                          <Box 
-                            key={record.id}
-                            sx={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              py: 1,
-                              px: 2,
-                              bgcolor: 'grey.50',
-                              borderRadius: 1
-                            }}
-                          >
-                            <Typography variant="body2" fontWeight={600}>
-                              {record.user_profiles?.full_name || 'Unknown'}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {new Date(record.marked_at).toLocaleTimeString('vi-VN')}
-                            </Typography>
-                          </Box>
-                        ))}
-                    </Stack>
-                  </CardContent>
-                </Card>
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ScheduleIcon />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Time" 
+                  secondary={`${session.start_time} - ${session.end_time}`}
+                />
+              </ListItem>
+              {isActive && timeRemaining && (
+                <ListItem>
+                  <ListItemIcon>
+                    <SecurityIcon />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Expires in" 
+                    secondary={timeRemaining}
+                  />
+                </ListItem>
               )}
-            </Stack>
-          </Grid>
-        </Grid>
-      </DialogContent>
+            </List>
+          )}
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose} variant="outlined">
-          Đóng
-        </Button>
-        <Button 
-          onClick={generateQRCode}
-          variant="contained"
-          disabled={isGenerating}
-          startIcon={<Refresh />}
-        >
-          Làm mới QR Code
-        </Button>
-      </DialogActions>
-    </Dialog>
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {error}
+                </Alert>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {isActive && timeRemaining && timeRemaining !== 'Expired' && (
+            <Box mt={2}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Time Remaining
+              </Typography>
+              <LinearProgress 
+                variant="determinate" 
+                value={100 - (parseInt(timeRemaining) / 30) * 100}
+                color={timeRemaining.includes('s') ? 'warning' : 'primary'}
+              />
+            </Box>
+          )}
+        </CardContent>
+
+        <CardActions>
+          {!isActive ? (
+            <Button
+              variant="contained"
+              startIcon={<QrCodeIcon />}
+              onClick={generateQRCode}
+              disabled={isGenerating}
+              fullWidth
+            >
+              {isGenerating ? (
+                <>
+                  <CircularProgress size={20} sx={{ mr: 1 }} />
+                  Generating...
+                </>
+              ) : (
+                'Generate QR Code'
+              )}
+            </Button>
+          ) : (
+            <Box display="flex" gap={1} width="100%">
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={generateQRCode}
+                disabled={isGenerating}
+                size="small"
+              >
+                Refresh
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<StopIcon />}
+                onClick={revokeQRCode}
+                disabled={isRevoking}
+                size="small"
+              >
+                Revoke
+              </Button>
+            </Box>
+          )}
+        </CardActions>
+      </Card>
+
+      {/* QR Code Display Dialog */}
+      <Dialog
+        open={showQRDialog}
+        onClose={() => setShowQRDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6">
+              QR Code for {session?.session_name}
+            </Typography>
+            <IconButton onClick={() => setShowQRDialog(false)}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent>
+          {qrData && (
+            <Box textAlign="center">
+              <Box
+                component="img"
+                src={`data:image/png;base64,${qrData.qrCode}`}
+                alt="QR Code"
+                sx={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  border: '1px solid #ddd',
+                  borderRadius: 1,
+                  mb: 2
+                }}
+              />
+
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Students can scan this QR code to check in
+              </Typography>
+
+              {timeRemaining && (
+                <Chip
+                  icon={<ScheduleIcon />}
+                  label={`Expires in ${timeRemaining}`}
+                  color={timeRemaining === 'Expired' ? 'error' : 'primary'}
+                  sx={{ mt: 1 }}
+                />
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              <List dense>
+                <ListItem>
+                  <ListItemIcon>
+                    <SchoolIcon />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Class" 
+                    secondary={qrData.sessionInfo?.class_name}
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon>
+                    <ScheduleIcon />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Session Time" 
+                    secondary={`${qrData.sessionInfo?.start_time} - ${qrData.sessionInfo?.end_time}`}
+                  />
+                </ListItem>
+                {qrData.sessionInfo?.location && (
+                  <ListItem>
+                    <ListItemIcon>
+                      <LocationIcon />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Location" 
+                      secondary={qrData.sessionInfo.location}
+                    />
+                  </ListItem>
+                )}
+              </List>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setShowQRDialog(false)}>
+            Close
+          </Button>
+          <Tooltip title="Download QR Code">
+            <IconButton onClick={downloadQRCode} color="primary">
+              <DownloadIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Share QR Code">
+            <IconButton onClick={shareQRCode} color="primary">
+              <ShareIcon />
+            </IconButton>
+          </Tooltip>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }
 

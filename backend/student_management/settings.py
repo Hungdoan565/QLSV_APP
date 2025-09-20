@@ -5,10 +5,14 @@ Django settings for student_management project.
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
-import pymysql
 
-# Configure PyMySQL to work with Django
-pymysql.install_as_MySQLdb()
+# Only import pymysql if MySQL is configured
+try:
+    import pymysql
+    # Configure PyMySQL to work with Django
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -36,6 +40,7 @@ THIRD_PARTY_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'django_filters',
+    'channels',
 ]
 
 LOCAL_APPS = [
@@ -216,3 +221,42 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+
+# QR Code Security Settings
+QR_SECRET_KEY = config('QR_SECRET_KEY', default='your-super-secret-qr-key-change-in-production')
+QR_EXPIRY_MINUTES = config('QR_EXPIRY_MINUTES', default=30, cast=int)
+QR_RATE_LIMIT_WINDOW = config('QR_RATE_LIMIT_WINDOW', default=60, cast=int)
+QR_MAX_ATTEMPTS = config('QR_MAX_ATTEMPTS', default=5, cast=int)
+
+# Cache settings for QR codes
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes default
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
+        }
+    }
+}
+
+# Channels configuration
+ASGI_APPLICATION = 'student_management.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+
+# WebSocket settings
+WS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -11,24 +11,44 @@ import {
   CircularProgress,
   IconButton,
   Paper,
-  Divider
+  Divider,
+  Chip,
+  Card,
+  CardContent,
+  LinearProgress
 } from '@mui/material'
 import {
   QrCode as QrCodeIcon,
   CameraAlt as CameraIcon,
   Close as CloseIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Security as SecurityIcon,
+  Schedule as ScheduleIcon,
+  School as SchoolIcon
 } from '@mui/icons-material'
 import QrScanner from 'qr-scanner'
+import QRCodeService from '../../services/qrCodeService'
+import { motion, AnimatePresence } from 'framer-motion'
 
-const QRCodeScanner = ({ open, onClose, onScanSuccess, onScanError }) => {
+const QRCodeScanner = ({ 
+  open, 
+  onClose, 
+  onScanSuccess, 
+  onScanError,
+  studentId,
+  showValidation = true 
+}) => {
   const videoRef = useRef(null)
   const qrScannerRef = useRef(null)
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [scannedData, setScannedData] = useState(null)
+  const [isValidating, setIsValidating] = useState(false)
+  const [validationResult, setValidationResult] = useState(null)
+  const [timeRemaining, setTimeRemaining] = useState(null)
+  const [scanCount, setScanCount] = useState(0)
 
   useEffect(() => {
     if (open && videoRef.current) {
@@ -83,20 +103,58 @@ const QRCodeScanner = ({ open, onClose, onScanSuccess, onScanError }) => {
     setIsScanning(false)
   }
 
-  const handleScanSuccess = (data) => {
-    console.log('QR Code scanned:', data)
-    setScannedData(data)
-    setSuccess(true)
-    setIsScanning(false)
-    
-    // Stop scanner
-    stopScanner()
-    
-    // Call success callback
-    if (onScanSuccess) {
-      onScanSuccess(data)
+  const handleScanSuccess = useCallback(async (data) => {
+    try {
+      setScanCount(prev => prev + 1)
+      setError(null)
+      
+      // Parse QR code data
+      const qrData = QRCodeService.parseQRData(data)
+      setScannedData(qrData)
+      
+      // Check if QR code is expired
+      if (QRCodeService.isExpired(qrData.expiresAt)) {
+        throw new Error('QR code has expired')
+      }
+      
+      // Update time remaining
+      setTimeRemaining(QRCodeService.formatTimeRemaining(qrData.expiresAt))
+      
+      if (showValidation && studentId) {
+        setIsValidating(true)
+        
+        // Validate QR code with backend
+        const validationResult = await QRCodeService.validateQRCode({
+          qr_token: qrData.token,
+          student_id: studentId
+        })
+        
+        setValidationResult(validationResult)
+        setIsValidating(false)
+        
+        if (validationResult.success) {
+          setSuccess(true)
+          setIsScanning(false)
+          stopScanner()
+          onScanSuccess?.(validationResult)
+        } else {
+          throw new Error(validationResult.message || 'Validation failed')
+        }
+      } else {
+        // Just parse and return data without validation
+        setSuccess(true)
+        setIsScanning(false)
+        stopScanner()
+        onScanSuccess?.(qrData)
+      }
+      
+    } catch (error) {
+      console.error('QR scan error:', error)
+      setError(error.message)
+      setIsValidating(false)
+      onScanError?.(error)
     }
-  }
+  }, [showValidation, studentId, onScanSuccess, onScanError])
 
   const handleClose = () => {
     stopScanner()

@@ -410,3 +410,2078 @@ def import_excel(request):
             'success': False,
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+# QR Code API Endpoints
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def generate_qr_code(request):
+    """
+    Generate QR code for attendance session
+    POST /api/attendance/generate-qr/
+    """
+    try:
+        from .qr_service import QRCodeService
+        
+        session_id = request.data.get('session_id')
+        session_name = request.data.get('session_name', '')
+        
+        if not session_id:
+            return Response({
+                'success': False,
+                'error': 'Session ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify session exists and user has permission
+        try:
+            session = AttendanceSession.objects.get(id=session_id)
+            
+            # Check if user is the teacher of this session's class
+            if session.class_obj.teacher != request.user:
+                return Response({
+                    'success': False,
+                    'error': 'Permission denied. Only the class teacher can generate QR codes.'
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+        except AttendanceSession.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Session not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Generate QR code
+        qr_code_base64, token = QRCodeService.generate_qr_code(
+            session_id=session_id,
+            teacher_id=request.user.id,
+            session_name=session_name or session.session_name
+        )
+        
+        return Response({
+            'success': True,
+            'qr_code': qr_code_base64,
+            'token': token,
+            'session_id': session_id,
+            'expires_in_minutes': QRCodeService.QR_EXPIRY_MINUTES,
+            'session_info': {
+                'name': session.session_name,
+                'class_name': session.class_obj.class_name,
+                'start_time': session.start_time,
+                'end_time': session.end_time,
+                'location': session.location
+            }
+        })
+        
+    except ValueError as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to generate QR code: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def validate_qr_code(request):
+    """
+    Validate QR code and check in student
+    POST /api/attendance/validate-qr/
+    """
+    try:
+        from .qr_service import QRCodeService, QRCodeValidator
+        
+        qr_token = request.data.get('qr_token')
+        student_id = request.data.get('student_id')
+        
+        if not qr_token or not student_id:
+            return Response({
+                'success': False,
+                'error': 'QR token and student ID are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate QR token
+        try:
+            validation_result = QRCodeService.validate_qr_token(qr_token)
+            session_id = validation_result['session_id']
+        except ValueError as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate session access
+        is_valid_access, access_message = QRCodeValidator.validate_session_access(
+            session_id, student_id
+        )
+        
+        if not is_valid_access:
+            return Response({
+                'success': False,
+                'error': access_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check for duplicate check-in
+        is_duplicate, duplicate_message = QRCodeValidator.check_duplicate_checkin(
+            session_id, student_id
+        )
+        
+        if is_duplicate:
+            return Response({
+                'success': False,
+                'error': duplicate_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create or update attendance record
+        try:
+            attendance, created = Attendance.objects.get_or_create(
+                session_id=session_id,
+                student_id=student_id,
+                defaults={
+                    'status': 'present',
+                    'check_in_time': timezone.now(),
+                    'is_late': False,
+                    'notes': 'Checked in via QR code'
+                }
+            )
+            
+            if not created:
+                # Update existing record
+                attendance.status = 'present'
+                attendance.check_in_time = timezone.now()
+                attendance.is_late = False
+                attendance.notes = 'Checked in via QR code'
+                attendance.save()
+            
+            # Get session info for response
+            session = AttendanceSession.objects.select_related('class_obj').get(id=session_id)
+            
+            return Response({
+                'success': True,
+                'message': 'Successfully checked in',
+                'attendance_id': attendance.id,
+                'session_info': {
+                    'id': session.id,
+                    'name': session.session_name,
+                    'class_name': session.class_obj.class_name,
+                    'start_time': session.start_time,
+                    'end_time': session.end_time,
+                    'location': session.location
+                },
+                'check_in_time': attendance.check_in_time,
+                'is_late': attendance.is_late
+            })
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': f'Failed to create attendance record: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'QR validation failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_qr_status(request, session_id):
+    """
+    Get QR code status for a session
+    GET /api/attendance/qr-status/{session_id}/
+    """
+    try:
+        from .qr_service import QRCodeService
+        
+        # Verify session exists and user has permission
+        try:
+            session = AttendanceSession.objects.get(id=session_id)
+            
+            # Check if user is the teacher of this session's class
+            if session.class_obj.teacher != request.user:
+                return Response({
+                    'success': False,
+                    'error': 'Permission denied'
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+        except AttendanceSession.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Session not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get QR status
+        qr_status = QRCodeService.get_qr_status(session_id, request.user.id)
+        
+        return Response({
+            'success': True,
+            'qr_status': qr_status,
+            'session_info': {
+                'id': session.id,
+                'name': session.session_name,
+                'class_name': session.class_obj.class_name,
+                'is_active': session.is_active,
+                'start_time': session.start_time,
+                'end_time': session.end_time
+            }
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to get QR status: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def revoke_qr_code(request, session_id):
+    """
+    Revoke QR code for a session
+    POST /api/attendance/revoke-qr/{session_id}/
+    """
+    try:
+        from .qr_service import QRCodeService
+        
+        # Verify session exists and user has permission
+        try:
+            session = AttendanceSession.objects.get(id=session_id)
+            
+            # Check if user is the teacher of this session's class
+            if session.class_obj.teacher != request.user:
+                return Response({
+                    'success': False,
+                    'error': 'Permission denied'
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+        except AttendanceSession.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Session not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Revoke QR code
+        success = QRCodeService.revoke_qr_token(session_id, request.user.id)
+        
+        if success:
+            return Response({
+                'success': True,
+                'message': 'QR code revoked successfully'
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'Failed to revoke QR code'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to revoke QR code: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_attendance(request):
+    """Export attendance records to Excel file"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        from django.http import HttpResponse
+        
+        # Get query parameters
+        session_id = request.query_params.get('session_id', None)
+        class_id = request.query_params.get('class_id', None)
+        student_id = request.query_params.get('student_id', None)
+        date_from = request.query_params.get('date_from', None)
+        date_to = request.query_params.get('date_to', None)
+        
+        # Filter attendance records
+        queryset = Attendance.objects.select_related('student', 'session', 'session__class_obj').all()
+        
+        if session_id:
+            queryset = queryset.filter(session_id=session_id)
+        if class_id:
+            queryset = queryset.filter(session__class_obj_id=class_id)
+        if student_id:
+            queryset = queryset.filter(student__student_id=student_id)
+        if date_from:
+            queryset = queryset.filter(session__session_date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(session__session_date__lte=date_to)
+        
+        # Convert to list of dictionaries
+        attendance_data = []
+        for attendance in queryset:
+            attendance_data.append({
+                'Student ID': attendance.student.student_id,
+                'Student Name': f"{attendance.student.first_name} {attendance.student.last_name}",
+                'Class': attendance.session.class_obj.class_name,
+                'Session Name': attendance.session.session_name,
+                'Session Date': attendance.session.session_date.strftime('%Y-%m-%d'),
+                'Start Time': attendance.session.start_time.strftime('%H:%M'),
+                'End Time': attendance.session.end_time.strftime('%H:%M'),
+                'Location': attendance.session.location or '',
+                'Status': attendance.get_status_display(),
+                'Check In Time': attendance.check_in_time.strftime('%Y-%m-%d %H:%M') if attendance.check_in_time else '',
+                'Check Out Time': attendance.check_out_time.strftime('%Y-%m-%d %H:%M') if attendance.check_out_time else '',
+                'Is Late': 'Yes' if attendance.is_late else 'No',
+                'Notes': attendance.notes or '',
+                'Created Date': attendance.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+        
+        # Create DataFrame
+        df = pd.DataFrame(attendance_data)
+        
+        # Create Excel file in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Attendance', index=False)
+            
+            # Auto-adjust column widths
+            worksheet = writer.sheets['Attendance']
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        output.seek(0)
+        
+        # Create HTTP response
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+        # Generate filename
+        filename_parts = ['attendance']
+        if session_id:
+            filename_parts.append(f'session_{session_id}')
+        if class_id:
+            filename_parts.append(f'class_{class_id}')
+        if student_id:
+            filename_parts.append(f'student_{student_id}')
+        
+        filename = '_'.join(filename_parts) + '.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Export failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+# QR Code API Endpoints
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def generate_qr_code(request):
+    """
+    Generate QR code for attendance session
+    POST /api/attendance/generate-qr/
+    """
+    try:
+        from .qr_service import QRCodeService
+        
+        session_id = request.data.get('session_id')
+        session_name = request.data.get('session_name', '')
+        
+        if not session_id:
+            return Response({
+                'success': False,
+                'error': 'Session ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify session exists and user has permission
+        try:
+            session = AttendanceSession.objects.get(id=session_id)
+            
+            # Check if user is the teacher of this session's class
+            if session.class_obj.teacher != request.user:
+                return Response({
+                    'success': False,
+                    'error': 'Permission denied. Only the class teacher can generate QR codes.'
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+        except AttendanceSession.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Session not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Generate QR code
+        qr_code_base64, token = QRCodeService.generate_qr_code(
+            session_id=session_id,
+            teacher_id=request.user.id,
+            session_name=session_name or session.session_name
+        )
+        
+        return Response({
+            'success': True,
+            'qr_code': qr_code_base64,
+            'token': token,
+            'session_id': session_id,
+            'expires_in_minutes': QRCodeService.QR_EXPIRY_MINUTES,
+            'session_info': {
+                'name': session.session_name,
+                'class_name': session.class_obj.class_name,
+                'start_time': session.start_time,
+                'end_time': session.end_time,
+                'location': session.location
+            }
+        })
+        
+    except ValueError as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to generate QR code: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def validate_qr_code(request):
+    """
+    Validate QR code and check in student
+    POST /api/attendance/validate-qr/
+    """
+    try:
+        from .qr_service import QRCodeService, QRCodeValidator
+        
+        qr_token = request.data.get('qr_token')
+        student_id = request.data.get('student_id')
+        
+        if not qr_token or not student_id:
+            return Response({
+                'success': False,
+                'error': 'QR token and student ID are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate QR token
+        try:
+            validation_result = QRCodeService.validate_qr_token(qr_token)
+            session_id = validation_result['session_id']
+        except ValueError as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate session access
+        is_valid_access, access_message = QRCodeValidator.validate_session_access(
+            session_id, student_id
+        )
+        
+        if not is_valid_access:
+            return Response({
+                'success': False,
+                'error': access_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check for duplicate check-in
+        is_duplicate, duplicate_message = QRCodeValidator.check_duplicate_checkin(
+            session_id, student_id
+        )
+        
+        if is_duplicate:
+            return Response({
+                'success': False,
+                'error': duplicate_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create or update attendance record
+        try:
+            attendance, created = Attendance.objects.get_or_create(
+                session_id=session_id,
+                student_id=student_id,
+                defaults={
+                    'status': 'present',
+                    'check_in_time': timezone.now(),
+                    'is_late': False,
+                    'notes': 'Checked in via QR code'
+                }
+            )
+            
+            if not created:
+                # Update existing record
+                attendance.status = 'present'
+                attendance.check_in_time = timezone.now()
+                attendance.is_late = False
+                attendance.notes = 'Checked in via QR code'
+                attendance.save()
+            
+            # Get session info for response
+            session = AttendanceSession.objects.select_related('class_obj').get(id=session_id)
+            
+            return Response({
+                'success': True,
+                'message': 'Successfully checked in',
+                'attendance_id': attendance.id,
+                'session_info': {
+                    'id': session.id,
+                    'name': session.session_name,
+                    'class_name': session.class_obj.class_name,
+                    'start_time': session.start_time,
+                    'end_time': session.end_time,
+                    'location': session.location
+                },
+                'check_in_time': attendance.check_in_time,
+                'is_late': attendance.is_late
+            })
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': f'Failed to create attendance record: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'QR validation failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_qr_status(request, session_id):
+    """
+    Get QR code status for a session
+    GET /api/attendance/qr-status/{session_id}/
+    """
+    try:
+        from .qr_service import QRCodeService
+        
+        # Verify session exists and user has permission
+        try:
+            session = AttendanceSession.objects.get(id=session_id)
+            
+            # Check if user is the teacher of this session's class
+            if session.class_obj.teacher != request.user:
+                return Response({
+                    'success': False,
+                    'error': 'Permission denied'
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+        except AttendanceSession.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Session not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get QR status
+        qr_status = QRCodeService.get_qr_status(session_id, request.user.id)
+        
+        return Response({
+            'success': True,
+            'qr_status': qr_status,
+            'session_info': {
+                'id': session.id,
+                'name': session.session_name,
+                'class_name': session.class_obj.class_name,
+                'is_active': session.is_active,
+                'start_time': session.start_time,
+                'end_time': session.end_time
+            }
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to get QR status: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def revoke_qr_code(request, session_id):
+    """
+    Revoke QR code for a session
+    POST /api/attendance/revoke-qr/{session_id}/
+    """
+    try:
+        from .qr_service import QRCodeService
+        
+        # Verify session exists and user has permission
+        try:
+            session = AttendanceSession.objects.get(id=session_id)
+            
+            # Check if user is the teacher of this session's class
+            if session.class_obj.teacher != request.user:
+                return Response({
+                    'success': False,
+                    'error': 'Permission denied'
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+        except AttendanceSession.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Session not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Revoke QR code
+        success = QRCodeService.revoke_qr_token(session_id, request.user.id)
+        
+        if success:
+            return Response({
+                'success': True,
+                'message': 'QR code revoked successfully'
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'Failed to revoke QR code'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to revoke QR code: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# WebSocket Integration for Real-time Updates
+def send_attendance_update(session_id, attendance_data):
+    """
+    Send real-time attendance update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'attendance_update',
+                'data': {
+                    'session_id': session_id,
+                    'attendance': attendance_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        # Send to teacher's room
+        if attendance_data.get('teacher_id'):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{attendance_data['teacher_id']}",
+                {
+                    'type': 'attendance_update',
+                    'data': {
+                        'session_id': session_id,
+                        'attendance': attendance_data,
+                        'timestamp': timezone.now().isoformat()
+                    }
+                }
+            )
+        
+        logger.info(f"Sent attendance update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send attendance update: {e}")
+
+
+def send_session_status_update(session_id, status_data):
+    """
+    Send real-time session status update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'session_status_update',
+                'data': {
+                    'session_id': session_id,
+                    'status': status_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent session status update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send session status update: {e}")
+
+
+def send_qr_code_update(session_id, qr_data):
+    """
+    Send real-time QR code update via WebSocket
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send to session-specific room
+        async_to_sync(channel_layer.group_send)(
+            f"session_{session_id}",
+            {
+                'type': 'qr_code_update',
+                'data': {
+                    'session_id': session_id,
+                    'qr_code': qr_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Sent QR code update for session {session_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send QR code update: {e}")

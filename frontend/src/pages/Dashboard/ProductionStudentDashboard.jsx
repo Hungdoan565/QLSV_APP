@@ -517,6 +517,20 @@ const ProductionStudentDashboard = () => {
       )
       const thisWeekPresent = thisWeekRecords.filter(record => record.status === 'present').length
       
+      // Calculate credits earned and remaining
+      const creditsEarned = grades.length > 0
+        ? grades.reduce((sum, grade) => {
+            // Assuming each grade represents a subject with credits
+            // In real implementation, this should come from Subject model
+            const subjectCredits = grade.subject?.credits || 3 // Default 3 credits
+            return sum + subjectCredits
+          }, 0)
+        : 0
+      
+      // Calculate credits remaining (assuming 120 credits for graduation)
+      const totalCreditsRequired = 120
+      const creditsRemaining = Math.max(0, totalCreditsRequired - creditsEarned)
+      
       setStudentData(prev => ({
         ...prev,
         statistics: {
@@ -525,8 +539,8 @@ const ProductionStudentDashboard = () => {
           averageGrade: Math.round(averageGrade * 100) / 100,
           thisWeekAttendance: thisWeekPresent,
           gpa: Math.round(gpa * 100) / 100,
-          creditsEarned: 0, // TODO: Calculate from grades
-          creditsRemaining: 0 // TODO: Calculate from program requirements
+          creditsEarned,
+          creditsRemaining
         }
       }))
     } catch (err) {
@@ -570,14 +584,14 @@ const ProductionStudentDashboard = () => {
       console.error('Error loading data:', error)
       handleError('Không thể tải dữ liệu. Vui lòng thử lại.')
     }
-  }, [loadStudentProfile, loadAttendanceRecords, loadGrades, loadStatistics, handleError])
+  }, [user?.id, user?.student_id]) // Only depend on user data, not functions
   
-  // Effects - Temporarily disabled to prevent infinite loop
-  // useEffect(() => {
-  //   if (user?.id || user?.student_id) {
-  //     loadAllData()
-  //   }
-  // }, [user?.id, user?.student_id]) // Only depend on user ID, not functions
+  // Effects - Fixed infinite loop by removing function dependencies
+  useEffect(() => {
+    if (user?.id || user?.student_id) {
+      loadAllData()
+    }
+  }, [user?.id, user?.student_id]) // Only depend on user ID, not functions
   
   // useEffect(() => {
   //   if (user?.id || user?.student_id) {

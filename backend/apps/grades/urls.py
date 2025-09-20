@@ -13,5 +13,5 @@ urlpatterns = [
     
     # Import/Export
     path('import-excel/', views.import_excel, name='import_excel'),
-    # path('export/', views.export_grades, name='export_grades'),
+    path('export/', views.export_grades, name='export_grades'),
 ]

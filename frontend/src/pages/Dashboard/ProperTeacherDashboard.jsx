@@ -139,8 +139,10 @@ const ProperTeacherDashboard = () => {
   }, [user.id])
 
   useEffect(() => {
-    loadTeacherData()
-  }, [loadTeacherData])
+    if (user?.id) {
+      loadTeacherData()
+    }
+  }, [user?.id]) // Only depend on user ID, not the function
 
   const handleRefresh = () => {
     loadTeacherData()

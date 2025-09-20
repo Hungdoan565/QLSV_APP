@@ -18,5 +18,11 @@ urlpatterns = [
     # Statistics and export
     path('statistics/', views.attendance_statistics, name='attendance_statistics'),
     path('import-excel/', views.import_excel, name='import_excel'),
-    # path('export/', views.export_attendance, name='export_attendance'),  # Commented out until function is implemented
+    path('export/', views.export_attendance, name='export_attendance'),
+    
+    # QR Code endpoints
+    path('generate-qr/', views.generate_qr_code, name='generate_qr_code'),
+    path('validate-qr/', views.validate_qr_code, name='validate_qr_code'),
+    path('qr-status/<int:session_id>/', views.get_qr_status, name='get_qr_status'),
+    path('revoke-qr/<int:session_id>/', views.revoke_qr_code, name='revoke_qr_code'),
 ]

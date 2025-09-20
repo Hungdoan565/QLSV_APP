@@ -102,6 +102,99 @@ def grade_statistics(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_grades(request):
+    """Export grades to Excel file"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        from django.http import HttpResponse
+        
+        # Get query parameters
+        student_id = request.query_params.get('student_id', None)
+        class_id = request.query_params.get('class_id', None)
+        subject_id = request.query_params.get('subject_id', None)
+        
+        # Filter grades
+        queryset = Grade.objects.select_related('student', 'class_obj', 'subject').all()
+        
+        if student_id:
+            queryset = queryset.filter(student__student_id=student_id)
+        if class_id:
+            queryset = queryset.filter(class_obj_id=class_id)
+        if subject_id:
+            queryset = queryset.filter(subject_id=subject_id)
+        
+        # Convert to list of dictionaries
+        grades_data = []
+        for grade in queryset:
+            grades_data.append({
+                'Student ID': grade.student.student_id,
+                'Student Name': f"{grade.student.first_name} {grade.student.last_name}",
+                'Class': grade.class_obj.class_name,
+                'Subject': grade.subject.subject_name,
+                'Grade Type': grade.get_grade_type_display(),
+                'Score': float(grade.score),
+                'Max Score': float(grade.max_score),
+                'Percentage': f"{grade.percentage}%",
+                'Letter Grade': grade.letter_grade,
+                'Comment': grade.comment or '',
+                'Created Date': grade.created_at.strftime('%Y-%m-%d %H:%M'),
+                'Created By': f"{grade.created_by.first_name} {grade.created_by.last_name}"
+            })
+        
+        # Create DataFrame
+        df = pd.DataFrame(grades_data)
+        
+        # Create Excel file in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Grades', index=False)
+            
+            # Auto-adjust column widths
+            worksheet = writer.sheets['Grades']
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        output.seek(0)
+        
+        # Create HTTP response
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+        # Generate filename
+        filename_parts = ['grades']
+        if student_id:
+            filename_parts.append(f'student_{student_id}')
+        if class_id:
+            filename_parts.append(f'class_{class_id}')
+        if subject_id:
+            filename_parts.append(f'subject_{subject_id}')
+        
+        filename = '_'.join(filename_parts) + '.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Export failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 def _get_min_score_for_letter(letter):
     """Get minimum score for letter grade"""
     grade_ranges = {
@@ -432,4 +525,97 @@ def import_excel(request):
         return Response({
             'success': False,
             'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def export_grades(request):
+    """Export grades to Excel file"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        from django.http import HttpResponse
+        
+        # Get query parameters
+        student_id = request.query_params.get('student_id', None)
+        class_id = request.query_params.get('class_id', None)
+        subject_id = request.query_params.get('subject_id', None)
+        
+        # Filter grades
+        queryset = Grade.objects.select_related('student', 'class_obj', 'subject').all()
+        
+        if student_id:
+            queryset = queryset.filter(student__student_id=student_id)
+        if class_id:
+            queryset = queryset.filter(class_obj_id=class_id)
+        if subject_id:
+            queryset = queryset.filter(subject_id=subject_id)
+        
+        # Convert to list of dictionaries
+        grades_data = []
+        for grade in queryset:
+            grades_data.append({
+                'Student ID': grade.student.student_id,
+                'Student Name': f"{grade.student.first_name} {grade.student.last_name}",
+                'Class': grade.class_obj.class_name,
+                'Subject': grade.subject.subject_name,
+                'Grade Type': grade.get_grade_type_display(),
+                'Score': float(grade.score),
+                'Max Score': float(grade.max_score),
+                'Percentage': f"{grade.percentage}%",
+                'Letter Grade': grade.letter_grade,
+                'Comment': grade.comment or '',
+                'Created Date': grade.created_at.strftime('%Y-%m-%d %H:%M'),
+                'Created By': f"{grade.created_by.first_name} {grade.created_by.last_name}"
+            })
+        
+        # Create DataFrame
+        df = pd.DataFrame(grades_data)
+        
+        # Create Excel file in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Grades', index=False)
+            
+            # Auto-adjust column widths
+            worksheet = writer.sheets['Grades']
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        output.seek(0)
+        
+        # Create HTTP response
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+        # Generate filename
+        filename_parts = ['grades']
+        if student_id:
+            filename_parts.append(f'student_{student_id}')
+        if class_id:
+            filename_parts.append(f'class_{class_id}')
+        if subject_id:
+            filename_parts.append(f'subject_{subject_id}')
+        
+        filename = '_'.join(filename_parts) + '.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Export failed: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
