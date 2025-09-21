@@ -28,6 +28,8 @@ import Teachers from './pages/Teachers/Teachers'
 import ScheduleManagement from './pages/ScheduleManagement/ScheduleManagement'
 import Rooms from './pages/Rooms/Rooms'
 import SystemReports from './pages/Reports/SystemReports'
+import AttendanceManagement from './pages/Attendance/AttendanceManagement'
+import GradeManagement from './pages/Grades/GradeManagement'
 import Profile from './pages/Profile/Profile'
 import NotFound from './pages/NotFound/NotFound'
 
@@ -132,17 +134,17 @@ const App = () => {
           } />
 
           <Route path="/grades" element={
-            <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
+            <ProtectedRoute requiredRole={['admin']}>
               <Layout>
-                <Grades />
+                <GradeManagement />
               </Layout>
             </ProtectedRoute>
           } />
 
           <Route path="/attendance" element={
-            <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
+            <ProtectedRoute requiredRole={['admin']}>
               <Layout>
-                <Attendance />
+                <AttendanceManagement />
               </Layout>
             </ProtectedRoute>
           } />
