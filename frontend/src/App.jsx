@@ -24,6 +24,10 @@ import Classes from './pages/Classes/Classes'
 import Grades from './pages/Grades/Grades'
 import Attendance from './pages/Attendance/Attendance'
 import Schedule from './pages/Schedule/Schedule'
+import Teachers from './pages/Teachers/Teachers'
+import ScheduleManagement from './pages/ScheduleManagement/ScheduleManagement'
+import Rooms from './pages/Rooms/Rooms'
+import SystemReports from './pages/Reports/SystemReports'
 import Profile from './pages/Profile/Profile'
 import NotFound from './pages/NotFound/NotFound'
 
@@ -143,13 +147,41 @@ const App = () => {
             </ProtectedRoute>
           } />
 
-          <Route path="/schedule" element={
-            <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
-              <Layout>
-                <Schedule />
-              </Layout>
-            </ProtectedRoute>
-          } />
+            <Route path="/schedule" element={
+              <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
+                <Layout>
+                  <Schedule />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/teachers" element={
+              <ProtectedRoute requiredRole={['admin']}>
+                <Layout>
+                  <Teachers />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/schedule-management" element={
+              <ProtectedRoute requiredRole={['admin']}>
+                <Layout>
+                  <ScheduleManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/rooms" element={
+              <ProtectedRoute requiredRole={['admin']}>
+                <Layout>
+                  <Rooms />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/reports" element={
+              <ProtectedRoute requiredRole={['admin']}>
+                <Layout>
+                  <SystemReports />
+                </Layout>
+              </ProtectedRoute>
+            } />
 
           {/* Profile Route */}
           <Route path="/profile" element={

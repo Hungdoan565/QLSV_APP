@@ -36,6 +36,9 @@ import {
   Home,
   ChevronLeft,
   Schedule,
+  BarChart,
+  Person as PersonIcon,
+  Room as RoomIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -69,6 +72,11 @@ const getNavigationItems = (userRole) => {
         path: '/students'
       },
       { 
+        text: 'Quản lý giảng viên', 
+        icon: <PersonIcon />, 
+        path: '/teachers'
+      },
+      { 
         text: 'Quản lý lớp học', 
         icon: <School />, 
         path: '/classes'
@@ -82,6 +90,21 @@ const getNavigationItems = (userRole) => {
         text: 'Quản lý điểm danh', 
         icon: <Assignment />, 
         path: '/attendance'
+      },
+      { 
+        text: 'Quản lý thời khóa biểu', 
+        icon: <Schedule />, 
+        path: '/schedule-management'
+      },
+      { 
+        text: 'Quản lý phòng học', 
+        icon: <RoomIcon />, 
+        path: '/rooms'
+      },
+      { 
+        text: 'Báo cáo hệ thống', 
+        icon: <BarChart />, 
+        path: '/reports'
       },
     ]
   }

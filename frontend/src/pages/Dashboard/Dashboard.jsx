@@ -1,9 +1,10 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import { Box, CircularProgress, Typography } from '@mui/material'
-import ProperAdminDashboard from './ProperAdminDashboard'
+import ProductionAdminDashboard from './ProductionAdminDashboard'
 import ProductionTeacherDashboard from './ProductionTeacherDashboard'
 import ProductionStudentDashboard from './ProductionStudentDashboard'
+import { AdminMockDataProvider } from '../../components/Dashboard/AdminMockDataProvider'
 
 const Dashboard = () => {
   const { user, isLoading } = useSelector((state) => state.auth)
@@ -36,7 +37,11 @@ const Dashboard = () => {
   
   switch (userRole) {
     case 'admin':
-      return <ProperAdminDashboard />
+      return (
+        <AdminMockDataProvider user={user}>
+          <ProductionAdminDashboard />
+        </AdminMockDataProvider>
+      )
     case 'teacher':
       return <ProductionTeacherDashboard />
     case 'student':
