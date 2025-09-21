@@ -38,17 +38,14 @@ export const register = createAsyncThunk(
 export const getProfile = createAsyncThunk(
   'auth/getProfile',
   async (_, { rejectWithValue }) => {
-    console.log('🔄 getProfile called - checking API...')
     try {
       const response = await apiService.getProfile()
-      console.log('✅ getProfile response:', response.success)
       if (response.success) {
         return response.user
       } else {
         return rejectWithValue(response.error)
       }
     } catch (error) {
-      console.log('❌ getProfile error:', error.message)
       return rejectWithValue(error.response?.data || error.message)
     }
   }
@@ -143,13 +140,11 @@ const authSlice = createSlice({
         state.isLoading = true
       })
       .addCase(getProfile.fulfilled, (state, action) => {
-        console.log('✅ getProfile fulfilled:', action.payload)
         state.isLoading = false
         state.user = action.payload
         state.isAuthenticated = true
       })
       .addCase(getProfile.rejected, (state, action) => {
-        console.log('❌ getProfile rejected:', action.payload)
         state.isLoading = false
         state.error = action.payload
         // If profile fetch fails, user might not be authenticated

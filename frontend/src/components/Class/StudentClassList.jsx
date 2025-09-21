@@ -47,7 +47,6 @@ import {
 import ClassJoinDialog from './ClassJoinDialog'
 
 const StudentClassList = ({ user }) => {
-  console.log('StudentClassList rendered with user:', user)
   const [classes, setClasses] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [joinDialogOpen, setJoinDialogOpen] = useState(false)
@@ -131,7 +130,6 @@ const StudentClassList = ({ user }) => {
         
         setClasses(mockClasses)
       } catch (err) {
-        console.error('Failed to load classes:', err)
         setError('Không thể tải danh sách lớp học')
       } finally {
         setIsLoading(false)

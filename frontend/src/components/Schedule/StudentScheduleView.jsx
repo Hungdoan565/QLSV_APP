@@ -149,7 +149,6 @@ const StudentScheduleView = ({ user }) => {
         
         setSchedules(mockSchedule)
       } catch (err) {
-        console.error('Failed to load schedule:', err)
         setError('Không thể tải thời khóa biểu')
       } finally {
         setIsLoading(false)

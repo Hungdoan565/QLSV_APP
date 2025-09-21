@@ -37,7 +37,6 @@ const Classes = () => {
       const response = await classService.getClasses()
       setClasses(response.data.results || [])
     } catch (err) {
-      console.error('Failed to load classes:', err)
       if (err.response?.status === 404) {
         setClasses([])
         setError('No classes found')

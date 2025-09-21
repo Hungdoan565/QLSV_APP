@@ -237,7 +237,6 @@ const StudentGradesView = ({ user }) => {
         
         setGrades(mockGrades)
       } catch (err) {
-        console.error('Failed to load grades:', err)
         setError('Không thể tải điểm số')
       } finally {
         setIsLoading(false)

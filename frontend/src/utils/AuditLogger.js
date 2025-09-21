@@ -18,7 +18,8 @@ class AuditLogger {
       // In development, log to console
       if (process.env.NODE_ENV === 'development') {
         console.log('🔒 Security Log:', logEntry)
-      }      // TODO: Gửi log lên server backend
+      }
+      // TODO: Gửi log lên server backend
       // await APIService.createAuditLog(logEntry)
       
       return logEntry

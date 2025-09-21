@@ -179,16 +179,13 @@ class APIService {
   }
 
   async getProfile() {
-    console.log('🌐 API: getProfile called')
     try {
       const response = await this.axiosInstance.get(AUTH_ENDPOINTS.PROFILE)
-      console.log('✅ API: getProfile success')
       return {
         success: true,
         user: response.data.user || response.data
       }
     } catch (error) {
-      console.log('❌ API: getProfile error:', error.message)
       return {
         success: false,
         error: error.response?.data || { message: 'Không thể lấy thông tin người dùng' }

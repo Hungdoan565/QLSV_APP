@@ -193,7 +193,6 @@ const useErrorHandler = () => {
   const [retryCount, setRetryCount] = useState(0)
   
   const handleError = useCallback((err, retryFn) => {
-    console.error('Error occurred:', err)
     setError(err.message || 'An error occurred')
     
     if (retryCount < 3 && retryFn) {
@@ -399,22 +398,18 @@ const ProductionStudentDashboard = () => {
   const loadStudentProfile = useCallback(async () => {
     // Check if user has valid student_id
     if (!user?.id && !user?.student_id) {
-      console.warn('No valid user ID found')
       return
     }
     
     try {
       setLoading('profile', true)
       const studentId = user.student_id || user.id
-      console.log('Loading student profile for ID:', studentId)
       
       const response = await studentService.getStudent(studentId)
       setStudentData(prev => ({ ...prev, profile: response.data }))
     } catch (err) {
-      console.error('Failed to load student profile:', err)
       // Don't retry on 404 - student might not exist
       if (err.response?.status === 404) {
-        console.warn('Student profile not found, using mock data')
         // Don't show error, just use mock data
         return
       }
@@ -430,7 +425,6 @@ const ProductionStudentDashboard = () => {
   const loadAttendanceRecords = useCallback(async () => {
     // Check if user has valid student_id
     if (!user?.id && !user?.student_id) {
-      console.warn('No valid user ID for attendance records')
       return
     }
     
@@ -445,10 +439,8 @@ const ProductionStudentDashboard = () => {
       })
       setStudentData(prev => ({ ...prev, attendanceRecords: response.data.results || [] }))
     } catch (err) {
-      console.error('Failed to load attendance records:', err)
       // Don't retry on 404 - no attendance records yet
       if (err.response?.status === 404) {
-        console.warn('No attendance records found, using mock data')
         setStudentData(prev => ({ ...prev, attendanceRecords: [] }))
         return
       }
@@ -464,7 +456,6 @@ const ProductionStudentDashboard = () => {
   const loadGrades = useCallback(async () => {
     // Check if user has valid student_id
     if (!user?.id && !user?.student_id) {
-      console.warn('No valid user ID for grades')
       return
     }
     
@@ -476,10 +467,8 @@ const ProductionStudentDashboard = () => {
       })
       setStudentData(prev => ({ ...prev, recentGrades: response.data.results || [] }))
     } catch (err) {
-      console.error('Failed to load grades:', err)
       // Don't retry on 404 - no grades yet
       if (err.response?.status === 404) {
-        console.warn('No grades found, using mock data')
         setStudentData(prev => ({ ...prev, recentGrades: [] }))
         return
       }
@@ -495,7 +484,6 @@ const ProductionStudentDashboard = () => {
   const loadStatistics = useCallback(async () => {
     // Check if user has valid student_id
     if (!user?.id && !user?.student_id) {
-      console.warn('No valid user ID for statistics')
       return
     }
     
@@ -557,7 +545,6 @@ const ProductionStudentDashboard = () => {
         }
       }))
     } catch (err) {
-      console.error('Failed to load statistics:', err)
       // Don't retry on 404 - no data yet
       if (err.response?.status === 404) {
         // Set default statistics
@@ -594,7 +581,6 @@ const ProductionStudentDashboard = () => {
         loadStatistics()
       ])
     } catch (error) {
-      console.error('Error loading data:', error)
       handleError('Không thể tải dữ liệu. Vui lòng thử lại.')
     }
   }, [loadStudentProfile, loadAttendanceRecords, loadGrades, loadStatistics, handleError])
@@ -602,7 +588,6 @@ const ProductionStudentDashboard = () => {
   // Effects - Fixed data loading
   useEffect(() => {
     if (user?.id || user?.student_id) {
-      console.log('Loading student data for user:', user)
       loadAllData()
     }
   }, [user?.id, user?.student_id, loadAllData])
@@ -633,7 +618,6 @@ const ProductionStudentDashboard = () => {
       setQrDialogOpen(false)
       loadAllData() // Refresh all data
     } catch (err) {
-      console.error('Check-in failed:', err)
       showNotification('Điểm danh thất bại. Vui lòng thử lại.', 'error')
     } finally {
       setLoading('qrCheckIn', false)
@@ -1041,7 +1025,6 @@ const ProductionStudentDashboard = () => {
           onClose={() => setQrDialogOpen(false)}
           onScanSuccess={handleQRCodeSubmit}
           onScanError={(error) => {
-            console.error('QR Scan error:', error)
             showNotification('Lỗi quét QR code: ' + error, 'error')
           }}
         />
