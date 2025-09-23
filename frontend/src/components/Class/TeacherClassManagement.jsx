@@ -58,11 +58,13 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { useTeacherMockData } from '../Dashboard/TeacherMockDataProvider'
 import MockDataNotice from '../Dashboard/MockDataNotice'
 
 const TeacherClassManagement = () => {
   const { mockData, isLoading } = useTeacherMockData()
+  const navigate = useNavigate()
   const [selectedClass, setSelectedClass] = useState(null)
   const [showStudentList, setShowStudentList] = useState(false)
   const [showMockNotice, setShowMockNotice] = useState(true)
@@ -86,8 +88,8 @@ const TeacherClassManagement = () => {
   ]
 
   const handleViewClass = (classItem) => {
-    setSelectedClass(classItem)
-    setShowStudentList(true)
+    // Navigate to class detail page
+    navigate(`/classes/${classItem.id}`)
   }
 
   const handleCreateSession = () => {

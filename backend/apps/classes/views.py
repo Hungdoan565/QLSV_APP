@@ -1,9 +1,13 @@
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from django.db.models import Q
+from django.db.models import Q, Count
+from django.http import JsonResponse
 from apps.accounts.models import User
 from apps.students.models import Student
+from apps.students.serializers import StudentSerializer
+from apps.attendance.models import AttendanceSession, Attendance
+from apps.grades.models import Grade
 from .models import Class, ClassStudent
 from .serializers import (
     ClassSerializer, ClassCreateSerializer, ClassDetailSerializer, ClassStudentSerializer
@@ -221,3 +225,122 @@ def available_students(request, class_id):
         
     except Class.DoesNotExist:
         return Response({'error': 'Không tìm thấy lớp học'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def class_detail_with_students(request, class_id):
+    """Get detailed class information with students, attendance, and grades"""
+    try:
+        # Get class
+        class_obj = Class.objects.get(id=class_id)
+        
+        # Check permission
+        if request.user.role != 'admin' and class_obj.teacher != request.user:
+            return Response(
+                {'error': 'Bạn không có quyền xem lớp này'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get students in class
+        class_students = ClassStudent.objects.filter(
+            class_obj=class_obj, 
+            is_active=True
+        ).select_related('student')
+        
+        # Get attendance sessions for this class
+        attendance_sessions = AttendanceSession.objects.filter(
+            class_obj=class_obj
+        ).order_by('session_date')
+        
+        # Prepare student data with attendance and grades
+        students_data = []
+        for cs in class_students:
+            student = cs.student
+            
+            # Get attendance records for this student
+            attendance_records = {}
+            for session in attendance_sessions:
+                try:
+                    attendance = Attendance.objects.get(
+                        session=session, 
+                        student=student
+                    )
+                    attendance_records[session.id] = attendance.status == 'present'
+                except Attendance.DoesNotExist:
+                    attendance_records[session.id] = False
+            
+            # Get grades for this student in this class
+            grades = Grade.objects.filter(
+                student=student,
+                class_obj=class_obj
+            )
+            
+            grades_data = {
+                'regular': None,
+                'midterm': None,
+                'final': None
+            }
+            
+            for grade in grades:
+                if grade.grade_type == 'regular':
+                    grades_data['regular'] = float(grade.score)
+                elif grade.grade_type == 'midterm':
+                    grades_data['midterm'] = float(grade.score)
+                elif grade.grade_type == 'final':
+                    grades_data['final'] = float(grade.score)
+            
+            students_data.append({
+                'id': student.id,
+                'student_id': student.student_id,
+                'name': student.full_name,
+                'email': student.email,
+                'phone': student.phone,
+                'attendance': attendance_records,
+                'grades': grades_data
+            })
+        
+        # Prepare attendance sessions data
+        sessions_data = []
+        for session in attendance_sessions:
+            sessions_data.append({
+                'id': session.id,
+                'session_name': session.session_name,
+                'session_date': session.session_date.strftime('%Y-%m-%d'),
+                'start_time': session.start_time.strftime('%H:%M'),
+                'end_time': session.end_time.strftime('%H:%M'),
+                'location': session.location or '',
+                'qr_code': session.qr_code or ''
+            })
+        
+        # Prepare class data
+        class_data = {
+            'id': class_obj.id,
+            'class_id': class_obj.class_id,
+            'class_name': class_obj.class_name,
+            'description': class_obj.description,
+            'teacher': class_obj.teacher.get_full_name(),
+            'teacher_id': class_obj.teacher.id,
+            'max_students': class_obj.max_students,
+            'current_students': len(students_data),
+            'is_active': class_obj.is_active,
+            'created_at': class_obj.created_at.isoformat(),
+            'updated_at': class_obj.updated_at.isoformat()
+        }
+        
+        return Response({
+            'class': class_data,
+            'students': students_data,
+            'attendance_sessions': sessions_data
+        })
+        
+    except Class.DoesNotExist:
+        return Response(
+            {'error': 'Không tìm thấy lớp học'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

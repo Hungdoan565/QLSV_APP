@@ -21,6 +21,7 @@ import Dashboard from './pages/Dashboard/Dashboard'
 import HomePage from './pages/Home/HomePage'
 import Students from './pages/Students/Students'
 import Classes from './pages/Classes/Classes'
+import ClassDetailPage from './components/Class/ClassDetailPage'
 import Grades from './pages/Grades/Grades'
 import Attendance from './pages/Attendance/Attendance'
 import Schedule from './pages/Schedule/Schedule'
@@ -129,6 +130,14 @@ const App = () => {
             <ProtectedRoute requiredRole={['admin', 'teacher', 'student']}>
               <Layout>
                 <Classes />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/classes/:classId" element={
+            <ProtectedRoute requiredRole={['admin', 'teacher']}>
+              <Layout>
+                <ClassDetailPage />
               </Layout>
             </ProtectedRoute>
           } />

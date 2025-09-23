@@ -16,6 +16,9 @@ const classService = {
   
   // Statistics and analytics
   getClassStatistics: () => apiService.axiosInstance.get('/classes/statistics/'),
+  
+  // Class detail with students, attendance, and grades
+  getClassDetail: (classId) => apiService.axiosInstance.get(`/classes/${classId}/detail/`),
 }
 
 export default classService
